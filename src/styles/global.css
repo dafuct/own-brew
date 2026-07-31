@@ -845,3 +845,141 @@ input {
   background: var(--text-faint);
   background-clip: content-box;
 }
+
+/* ------------------------------------------------------------- history --- */
+
+.op {
+  border-bottom: 1px solid var(--border);
+}
+
+.op__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px var(--space-5);
+  text-align: left;
+}
+
+.op__head:hover {
+  background: var(--surface-hover);
+}
+
+.op__status {
+  width: 12px;
+  text-align: center;
+  flex: none;
+}
+
+.op__command {
+  font-size: var(--step--1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.op__count {
+  font-size: 10px;
+  color: var(--accent);
+  padding: 1px 6px;
+  background: var(--accent-dim);
+  border-radius: 3px;
+  flex: none;
+}
+
+.op__when {
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  flex: none;
+}
+
+.op__body {
+  padding: 0 var(--space-5) var(--space-4) 52px;
+}
+
+.change {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 3px 0;
+  font-size: var(--step--1);
+}
+
+.change__glyph {
+  width: 12px;
+  flex: none;
+}
+
+.change__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.change__versions {
+  margin-left: auto;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ rollback --- */
+
+.restore {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.restore__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step-0);
+}
+
+.restore__note {
+  margin-top: 2px;
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  line-height: 1.45;
+}
+
+.restore__hint {
+  margin-left: auto;
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.bake {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+.bake input {
+  width: 54px;
+  padding: 3px 6px;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.bake input:focus {
+  border-color: var(--accent-line);
+}
+
+/* A held-back update, explained rather than silently skipped. */
+.held {
+  color: var(--text-faint);
+  font-size: var(--step--1);
+}

@@ -111,16 +111,6 @@ impl Formula {
     pub fn is_installed(&self) -> bool {
         !self.installed.is_empty()
     }
-
-    /// Superseded kegs still on disk — the fast, offline rollback targets.
-    pub fn rollback_candidates(&self) -> Vec<&str> {
-        let active = self.active_version();
-        self.installed
-            .iter()
-            .map(|k| k.version.as_str())
-            .filter(|v| Some(*v) != active)
-            .collect()
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -336,22 +326,17 @@ mod tests {
     }
 
     #[test]
-    fn detects_superseded_kegs_as_rollback_candidates() {
-        // python@3.14 had 3.14.5 and 3.14.6 installed side by side.
+    fn reports_every_keg_the_receipts_mention() {
+        // These are install receipts, not disk contents — a keg listed here
+        // may already have been removed, which is why rollback targets come
+        // from the Cellar instead. See `state::installed`.
         let all = formulae();
         let python = all
             .iter()
             .find(|f| f.name.starts_with("python@"))
             .expect("python fixture");
-        if python.installed.len() > 1 {
-            assert!(
-                !python.rollback_candidates().is_empty(),
-                "a superseded keg should be offered as a rollback target"
-            );
-            assert!(!python
-                .rollback_candidates()
-                .contains(&python.active_version().unwrap()));
-        }
+        assert!(!python.installed.is_empty());
+        assert_eq!(python.active_version(), python.linked_keg.as_deref());
     }
 
     #[test]

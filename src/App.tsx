@@ -16,6 +16,7 @@ import { ErrorBanner, MissingHomebrew } from "./components/ErrorBanner";
 import { InstalledList } from "./components/InstalledView";
 import { Rail, type View } from "./components/Rail";
 import { ServicesList, UpdatesList } from "./components/UpdatesView";
+import { HistoryList } from "./components/HistoryView";
 import { useOperations } from "./hooks/useOperations";
 
 type Theme = "dark" | "light";
@@ -166,6 +167,7 @@ export default function App() {
           {view === "updates" && (
             <UpdatesList data={outdated} onSelect={setSelection} onRun={onRun} busy={busy} />
           )}
+          {view === "history" && <HistoryList refreshToken={refreshToken} />}
           {view === "services" && <ServicesList services={services} />}
         </main>
       </div>
@@ -178,6 +180,7 @@ export default function App() {
           onRun={onRun}
           busy={busy}
           refreshToken={refreshToken}
+          onChanged={() => void refreshLocalState()}
         />
       )}
 

@@ -3,6 +3,7 @@ import { api, asBrewError } from "../api/client";
 import type { BrewError, CaskDetail, Detail, FormulaDetail, Kind, OpRequest } from "../api/types";
 import { ErrorBanner } from "./ErrorBanner";
 import { Tag, relativeTime } from "./Tags";
+import { PolicySection, RollbackSection } from "./RollbackPanel";
 
 export function DetailPanel({
   kind,
@@ -11,6 +12,7 @@ export function DetailPanel({
   onRun,
   busy,
   refreshToken,
+  onChanged,
 }: {
   kind: Kind;
   id: string;
@@ -19,6 +21,7 @@ export function DetailPanel({
   busy: boolean;
   /** Changes after an operation so the panel refetches. */
   refreshToken: number;
+  onChanged: () => void;
 }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<BrewError | null>(null);
@@ -46,7 +49,13 @@ export function DetailPanel({
       {!detail && !error && <div className="skeleton" style={{ margin: "var(--space-5)" }} />}
 
       {detail?.kind === "formula" && (
-        <FormulaBody detail={detail} onRun={onRun} busy={busy} />
+        <FormulaBody
+          detail={detail}
+          onRun={onRun}
+          busy={busy}
+          refreshToken={refreshToken}
+          onChanged={onChanged}
+        />
       )}
       {detail?.kind === "cask" && <CaskBody detail={detail} onRun={onRun} busy={busy} />}
     </aside>
@@ -79,10 +88,14 @@ function FormulaBody({
   detail,
   onRun,
   busy,
+  refreshToken,
+  onChanged,
 }: {
   detail: FormulaDetail;
   onRun: (request: OpRequest) => void;
   busy: boolean;
+  refreshToken: number;
+  onChanged: () => void;
 }) {
   const installed = detail.installed.length > 0;
   const active = detail.linked_keg ?? detail.installed.at(-1)?.version ?? null;
@@ -168,14 +181,23 @@ function FormulaBody({
                 );
               })}
             </div>
-            {superseded.length > 0 && (
-              <p style={{ fontSize: "var(--step--1)", color: "var(--text-faint)", marginTop: 8 }}>
-                own-brew keeps superseded versions so an upgrade can be undone. Restoring them
-                arrives with the rollback engine.
-              </p>
-            )}
           </>
         )}
+
+        <RollbackSection
+          kind="formula"
+          id={detail.name}
+          busy={busy}
+          refreshToken={refreshToken}
+          onRestored={onChanged}
+        />
+
+        <PolicySection
+          kind="formula"
+          id={detail.name}
+          refreshToken={refreshToken}
+          onChanged={onChanged}
+        />
 
         {detail.caveats && (
           <>

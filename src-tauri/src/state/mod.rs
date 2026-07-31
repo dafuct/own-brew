@@ -5,6 +5,7 @@
 
 use crate::brew::Brew;
 use crate::error::Result;
+use crate::rollback::cellar;
 use crate::model::detail::{Cask, Formula, Info};
 use crate::model::entry::Kind;
 use crate::model::{Outdated, Service};
@@ -44,11 +45,9 @@ impl From<&Formula> for InstalledPackage {
             pinned: f.pinned,
             installed_on_request: newest.is_some_and(|k| k.installed_on_request),
             installed_at: newest.and_then(|k| k.time),
-            rollback_targets: f
-                .rollback_candidates()
-                .into_iter()
-                .map(str::to_owned)
-                .collect(),
+            // Filled in from the filesystem by `installed`; Homebrew's
+            // receipts list kegs that no longer exist on disk.
+            rollback_targets: Vec::new(),
             self_updating: false,
         }
     }
@@ -96,6 +95,24 @@ pub async fn installed(brew: &Brew) -> Result<Vec<InstalledPackage>> {
         .map(InstalledPackage::from)
         .chain(info.casks.iter().map(InstalledPackage::from))
         .collect();
+
+    // Homebrew reports install receipts, not disk contents: on a real machine
+    // `brew info` listed sdl2-compat 2.32.10 as installed while that keg had
+    // already been removed. Rollback targets are therefore taken from the
+    // Cellar itself, read once for all packages.
+    let inventory = cellar::inventory(brew.prefix());
+    for package in &mut packages {
+        if package.kind != Kind::Formula {
+            continue;
+        }
+        if let Some(versions) = inventory.get(&package.id) {
+            package.rollback_targets = versions
+                .iter()
+                .filter(|v| Some(v.as_str()) != package.version.as_deref())
+                .cloned()
+                .collect();
+        }
+    }
 
     packages.sort_by_key(|p| p.name.to_lowercase());
     Ok(packages)
@@ -149,18 +166,36 @@ mod tests {
     }
 
     #[test]
-    fn surfaces_superseded_kegs_as_rollback_targets() {
+    fn mapping_alone_claims_no_rollback_targets() {
+        // The receipts cannot prove a keg is on disk, so the mapping leaves
+        // this empty and `installed` fills it from the Cellar.
         let info = parse(FORMULAE);
         let python = info
             .formulae
             .iter()
             .find(|f| f.name.starts_with("python@"))
             .expect("python fixture");
-        let pkg = InstalledPackage::from(python);
+        assert!(InstalledPackage::from(python).rollback_targets.is_empty());
+    }
 
-        if python.installed.len() > 1 {
-            assert!(!pkg.rollback_targets.is_empty());
-            assert!(!pkg.rollback_targets.contains(pkg.version.as_ref().unwrap()));
+    /// Against the real machine: every rollback target must exist on disk.
+    #[tokio::test]
+    async fn every_offered_rollback_target_exists_on_disk() {
+        let Ok(brew) = Brew::discover() else { return };
+        let packages = installed(&brew).await.expect("installed list");
+
+        for package in packages.iter().filter(|p| !p.rollback_targets.is_empty()) {
+            for version in &package.rollback_targets {
+                assert!(
+                    cellar::rack(brew.prefix(), &package.id).join(version).is_dir(),
+                    "{} {version} was offered as restorable but is not on disk",
+                    package.id
+                );
+            }
+            assert!(
+                !package.rollback_targets.contains(package.version.as_ref().unwrap()),
+                "the version in use must not be offered as a rollback target"
+            );
         }
     }
 

@@ -1,11 +1,12 @@
 import type { CatalogStats } from "../api/types";
 
-export type View = "discover" | "installed" | "updates" | "services";
+export type View = "discover" | "installed" | "updates" | "history" | "services";
 
 const NAV: { view: View; glyph: string; label: string }[] = [
   { view: "discover", glyph: "⌕", label: "Discover" },
   { view: "installed", glyph: "▤", label: "Installed" },
   { view: "updates", glyph: "↑", label: "Updates" },
+  { view: "history", glyph: "◷", label: "History" },
   { view: "services", glyph: "◉", label: "Services" },
 ];
 

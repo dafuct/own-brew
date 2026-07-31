@@ -179,3 +179,61 @@ export type OpEvent =
       event: "finished";
       data: { id: number; success: boolean; cancelled: boolean; durationMs: number };
     };
+
+// ------------------------------------------------------------- phase 2 ---
+
+export type ChangeKind = "installed" | "removed" | "upgraded" | "downgraded" | "changed";
+
+export interface Change {
+  kind: Kind;
+  package: string;
+  beforeVersion: string | null;
+  afterVersion: string | null;
+  change: ChangeKind;
+}
+
+export interface Operation {
+  id: number;
+  action: string;
+  kind: Kind;
+  targets: string[];
+  command: string;
+  startedAt: number;
+  finishedAt: number | null;
+  success: boolean;
+  cancelled: boolean;
+  error: string | null;
+  changes: Change[];
+}
+
+export type RollbackSource = "local_keg" | "download_cache" | "versioned_formula" | "history_only";
+
+export interface RollbackCandidate {
+  version: string;
+  source: RollbackSource;
+  /** Present only when source is versioned_formula. */
+  formula?: string;
+  restorable: boolean;
+  note: string;
+}
+
+export type Rule = "auto" | "never" | "bake" | "minor_only";
+
+export interface Policy {
+  kind: Kind;
+  package: string;
+  rule: Rule;
+  bakeDays: number | null;
+  note: string | null;
+}
+
+export interface Decision {
+  kind: Kind;
+  package: string;
+  currentVersion: string | null;
+  availableVersion: string | null;
+  rule: Rule;
+  due: boolean;
+  reason: string;
+  dueAt: number | null;
+}

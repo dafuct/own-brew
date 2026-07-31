@@ -3,6 +3,7 @@
 use crate::brew::Brew;
 use crate::catalog::Catalog;
 use crate::error::{Error, Result};
+use crate::history::History;
 use crate::ops::Runner;
 use serde::Serialize;
 use std::sync::Arc;
@@ -15,6 +16,9 @@ pub struct App {
     http: reqwest::Client,
     pub runner: Runner,
     catalog: RwLock<Option<Arc<Catalog>>>,
+    /// `None` only if the database could not be opened. History is valuable
+    /// but must never stop the app from managing packages.
+    history: Option<History>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -26,7 +30,7 @@ pub struct Environment {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(data_dir: std::path::PathBuf) -> Self {
         let brew = match Brew::discover() {
             Ok(brew) => {
                 tracing::info!(prefix = %brew.prefix().display(), "found Homebrew");
@@ -34,6 +38,14 @@ impl App {
             }
             Err(e) => {
                 tracing::warn!(error = %e, "Homebrew not found");
+                None
+            }
+        };
+
+        let history = match History::open(&data_dir.join("history.sqlite3")) {
+            Ok(history) => Some(history),
+            Err(e) => {
+                tracing::error!(error = %e, "could not open the history database");
                 None
             }
         };
@@ -46,7 +58,14 @@ impl App {
                 .expect("HTTP client construction cannot fail with these settings"),
             runner: Runner::new(),
             catalog: RwLock::new(None),
+            history,
         }
+    }
+
+    pub fn history(&self) -> Result<&History> {
+        self.history.as_ref().ok_or_else(|| {
+            Error::Catalog("the history database is unavailable on this machine".to_owned())
+        })
     }
 
     pub fn brew(&self) -> Result<&Brew> {
@@ -108,11 +127,5 @@ impl App {
             "catalog loaded"
         );
         Ok(catalog)
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -12,6 +12,10 @@ import type {
   SearchQuery,
   Service,
   BrewError,
+  Operation,
+  RollbackCandidate,
+  Policy,
+  Decision,
 } from "./types";
 
 /** Tauri rejects with our serialized Error shape; anything else is a bug. */
@@ -54,4 +58,15 @@ export const api = {
   },
 
   cancel: (id: number) => invoke<void>("op_cancel", { id }),
+
+  history: (limit = 100) => invoke<Operation[]>("history_recent", { limit }),
+
+  rollbackCandidates: (kind: Kind, id: string) =>
+    invoke<RollbackCandidate[]>("rollback_candidates", { kind, id }),
+  rollbackRestore: (id: string, version: string) =>
+    invoke<string>("rollback_restore", { id, version }),
+
+  policies: () => invoke<Policy[]>("policy_list"),
+  setPolicy: (policy: Policy) => invoke<void>("policy_set", { policy }),
+  decisions: () => invoke<Decision[]>("policy_decisions"),
 };

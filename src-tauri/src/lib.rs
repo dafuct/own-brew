@@ -3,8 +3,11 @@ pub mod brew;
 pub mod catalog;
 pub mod commands;
 pub mod error;
+pub mod history;
 pub mod model;
 pub mod ops;
+pub mod policy;
+pub mod rollback;
 pub mod state;
 
 pub use error::{Error, Result};
@@ -20,13 +23,18 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(app::App::new())
         .setup(|app| {
+            use tauri::Manager;
+            let data_dir = app
+                .path()
+                .app_data_dir()
+                .unwrap_or_else(|_| std::path::PathBuf::from("."));
+            app.manage(app::App::new(data_dir));
+
             // Warm the catalog while the user is still on the first screen, so
             // search is ready by the time they reach it.
             let handle: tauri::AppHandle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                use tauri::Manager;
                 let state = handle.state::<app::App>();
                 if let Err(e) = state.catalog().await {
                     tracing::warn!(error = %e, "could not preload the catalog");
@@ -46,6 +54,12 @@ pub fn run() {
             commands::op_run,
             commands::op_cancel,
             commands::op_active,
+            commands::history_recent,
+            commands::rollback_candidates,
+            commands::rollback_restore,
+            commands::policy_list,
+            commands::policy_set,
+            commands::policy_decisions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
