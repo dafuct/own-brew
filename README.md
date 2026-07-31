@@ -1,6 +1,6 @@
 # own-brew
 
-[![CI](https://github.com/OWNER/own-brew/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/own-brew/actions/workflows/ci.yml)
+[![CI](https://github.com/dafuct/own-brew/actions/workflows/ci.yml/badge.svg)](https://github.com/dafuct/own-brew/actions/workflows/ci.yml)
 
 **The Homebrew GUI that can undo an upgrade.**
 
@@ -157,7 +157,7 @@ its view cannot drift from Homebrew's.
 ## Install
 
 Download the `.dmg` for your architecture from
-[Releases](https://github.com/OWNER/own-brew/releases), drag own-brew to
+[Releases](https://github.com/dafuct/own-brew/releases), drag own-brew to
 Applications, and open it.
 
 **If macOS refuses to open it**, the release was not notarized. Right-click the
