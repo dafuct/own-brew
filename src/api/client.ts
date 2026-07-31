@@ -68,6 +68,12 @@ export const api = {
     invoke<RollbackCandidate[]>("rollback_candidates", { kind, id }),
   rollbackRestore: (id: string, version: string) =>
     invoke<string>("rollback_restore", { id, version }),
+  /** Recovers an off-disk version; streams the install like any operation. */
+  rollbackRecover: (id: string, version: string, onEvent: (event: OpEvent) => void) => {
+    const channel = new Channel<OpEvent>();
+    channel.onmessage = onEvent;
+    return invoke<string>("rollback_recover", { id, version, channel });
+  },
 
   policies: () => invoke<Policy[]>("policy_list"),
   setPolicy: (policy: Policy) => invoke<void>("policy_set", { policy }),

@@ -13,6 +13,7 @@ export function DetailPanel({
   busy,
   refreshToken,
   onChanged,
+  onRecover,
 }: {
   kind: Kind;
   id: string;
@@ -22,6 +23,7 @@ export function DetailPanel({
   /** Changes after an operation so the panel refetches. */
   refreshToken: number;
   onChanged: () => void;
+  onRecover: (id: string, version: string) => void;
 }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<BrewError | null>(null);
@@ -55,6 +57,7 @@ export function DetailPanel({
           busy={busy}
           refreshToken={refreshToken}
           onChanged={onChanged}
+          onRecover={onRecover}
         />
       )}
       {detail?.kind === "cask" && <CaskBody detail={detail} onRun={onRun} busy={busy} />}
@@ -90,12 +93,14 @@ function FormulaBody({
   busy,
   refreshToken,
   onChanged,
+  onRecover,
 }: {
   detail: FormulaDetail;
   onRun: (request: OpRequest) => void;
   busy: boolean;
   refreshToken: number;
   onChanged: () => void;
+  onRecover: (id: string, version: string) => void;
 }) {
   const installed = detail.installed.length > 0;
   const active = detail.linked_keg ?? detail.installed.at(-1)?.version ?? null;
@@ -190,6 +195,7 @@ function FormulaBody({
           busy={busy}
           refreshToken={refreshToken}
           onRestored={onChanged}
+          onRecover={(version) => onRecover(detail.name, version)}
         />
 
         <PolicySection

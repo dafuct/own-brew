@@ -6,10 +6,9 @@ Every Homebrew GUI answers *what can I install?* own-brew also answers the
 questions that actually cost time: *what changed, was it safe, and can I take
 it back?*
 
-> Status: phase 3. Rollback, the operation log and update policy all work.
-> Added: a vulnerability view, an upgrade impact preview, and a disk view that
-> shows what keeping your undo actually costs. Restoring a version that is
-> *not* on disk is still open — see "What is not done" below.
+> Status: phase 4. Any version Homebrew ever published can now be rolled back
+> to, whether or not anything for it survives locally — verified end to end by
+> taking `jq` from 1.8.2 down to 1.8.1 and back.
 
 ## Why it exists
 
@@ -42,12 +41,11 @@ That gap is the entire product:
 
 Verified against a live installation before the design was committed:
 
-| Source | Status | Availability |
+| Source | Cost | Availability |
 |---|---|---|
-| Superseded keg still in the Cellar | **works** | until `brew cleanup` runs |
-| Version Homebrew publishes separately | **works** | `python@3.13`, `node@22`, … |
-| Bottle in Homebrew's download cache | discovered, not restorable | recent installs |
-| Version seen only in own-brew's history | discovered, not restorable | anything you once ran |
+| Superseded keg still in the Cellar | instant, offline, nothing replaced | until `brew cleanup` runs |
+| Version Homebrew publishes separately | ordinary install | `python@3.13`, `node@22`, … |
+| Recovered from homebrew-core history | a download; replaces the installed version | **any published version** |
 
 Restoring a local keg drives Homebrew's *own* `Keg#link` through `brew ruby`.
 `brew switch` was removed years ago and no CLI verb replaced it, but
@@ -56,18 +54,33 @@ dependents resolve through, conflict resolution — would be a reliable way to
 break a machine. If linking the target fails, the previously linked keg is put
 back, so a failed rollback never leaves nothing linked.
 
-### What is not done
+### Recovering a version that is gone
 
-Restoring a version that is **not** on disk and has no separately-published
-formula. The obvious route was to fetch the historical formula from the commit
-ghcr.io records for every bottle — but those commits are unreachable:
-Homebrew's merge queue rebases, and `git fetch` of a recorded revision returns
-`upload-pack: not our ref`. `brew extract` is the supported alternative and it
-requires a full homebrew-core clone, which API-only installs (the modern
-default) do not have. Doing this properly means searching homebrew-core's
-history through the GitHub API. Until then own-brew *shows* those versions and
-says plainly that it cannot restore them, rather than offering a button that
-would fail.
+The obvious route is a dead end. Every bottle records the homebrew-core commit
+that built it, but those commits are unreachable — the merge queue rebases, so
+`git fetch` of a recorded revision answers `upload-pack: not our ref`. And
+`brew extract`, the supported alternative, needs a full homebrew-core clone
+that API-only installs no longer have.
+
+What works is asking GitHub which commits touched the formula file. Those SHAs
+*are* reachable, and a formula's whole history is a few dozen commits. The file
+is fetched, written into own-brew's own tap, and Homebrew is asked to confirm
+the version before anything is installed.
+
+Two constraints shape the result, both discovered the hard way:
+
+- **The file keeps its original name.** Naming it `jq@1.8.1` — the shape
+  `brew extract` produces — makes Homebrew build the bottle URL from the
+  formula name via `image_formula_name`, which maps `@` to `/`. It then looks
+  for the bottle at `homebrew/core/jq/1.8.1` and gets a 404.
+- **A recovery replaces the installed version.** Homebrew refuses to hold two
+  formulae of the same name from different taps, so the current version must
+  be uninstalled first. The bottle is therefore downloaded *before* anything
+  is removed, and the original is reinstalled if the install still fails — a
+  failed recovery must never leave you with no package at all.
+
+Recovery is refused outright when other installed packages depend on the one
+being rolled back, since replacing it would break them.
 
 own-brew also runs Homebrew with `HOMEBREW_NO_INSTALL_CLEANUP=1`, because
 Homebrew's periodic cleanup is precisely what destroys the fastest rollback

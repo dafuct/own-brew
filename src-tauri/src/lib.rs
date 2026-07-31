@@ -66,6 +66,8 @@ pub fn run() {
             commands::security_scan,
             commands::impact_all,
             commands::disk_footprint,
+            commands::rollback_recover,
+            commands::rollback_return_to_latest,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

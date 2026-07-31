@@ -7,6 +7,7 @@ const SOURCE_LABEL: Record<RollbackCandidate["source"], string> = {
   download_cache: "cached",
   versioned_formula: "separate formula",
   history_only: "from history",
+  published: "published",
 };
 
 /** Restoring a previous version — the reason own-brew exists. */
@@ -15,12 +16,15 @@ export function RollbackSection({
   id,
   busy,
   onRestored,
+  onRecover,
   refreshToken,
 }: {
   kind: Kind;
   id: string;
   busy: boolean;
   onRestored: () => void;
+  /** Recovery streams into the operation console, so it is run by App. */
+  onRecover: (version: string) => void;
   refreshToken: number;
 }) {
   const [candidates, setCandidates] = useState<RollbackCandidate[] | null>(null);
@@ -88,6 +92,15 @@ export function RollbackSection({
             </button>
           ) : candidate.source === "versioned_formula" ? (
             <span className="restore__hint mono">{candidate.formula}</span>
+          ) : candidate.restorable ? (
+            <button
+              className="btn btn--sm"
+              disabled={busy || working !== null}
+              onClick={() => onRecover(candidate.version)}
+              title="Fetches this version's formula from homebrew-core history, then installs it"
+            >
+              Recover
+            </button>
           ) : (
             <span className="restore__hint">unavailable</span>
           )}

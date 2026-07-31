@@ -66,9 +66,24 @@ impl Runner {
     pub async fn run(&self, brew: &Brew, request: Request, channel: Channel<Event>) -> Result<u64> {
         let args = plan::args(&request)?;
         let borrowed: Vec<&str> = args.iter().map(String::as_str).collect();
+        self.run_raw(brew, &borrowed, channel).await
+    }
+
+    /// Stream an already-constructed `brew` invocation.
+    ///
+    /// Used by multi-step flows such as recovery, where the sequence of
+    /// commands is decided by the caller but each should still appear in the
+    /// console like any other operation.
+    pub async fn run_raw(
+        &self,
+        brew: &Brew,
+        borrowed: &[&str],
+        channel: Channel<Event>,
+    ) -> Result<u64> {
+        let args: Vec<String> = borrowed.iter().map(|s| s.to_string()).collect();
 
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        let mut stream = brew.stream(&borrowed)?;
+        let mut stream = brew.stream(borrowed)?;
         let started = Instant::now();
 
         let (cancel_tx, mut cancel_rx) = oneshot::channel();

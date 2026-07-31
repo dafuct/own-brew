@@ -180,12 +180,14 @@ pub async fn rollback_candidates(
 
     Ok(rollback::candidates(
         brew,
+        Some(app.http()),
         app.history().ok(),
         kind,
         &id,
         current.as_deref(),
         &versioned,
-    ))
+    )
+    .await)
 }
 
 /// Switch back to a version whose keg is still on disk.
@@ -220,6 +222,84 @@ pub async fn rollback_restore(
     }
 
     outcome
+}
+
+/// Recover a version that is no longer on disk, install it, and make it live.
+///
+/// Streamed like any other operation. Nothing is uninstalled: the recovered
+/// version is installed alongside the current one and the links are swapped,
+/// so returning to the newest version later is another swap.
+#[tauri::command]
+pub async fn rollback_recover(
+    app: State<'_, App>,
+    id: String,
+    version: String,
+    channel: Channel<Event>,
+) -> Result<String> {
+    let brew = app.brew()?;
+    let before = state::installed(brew).await.ok();
+
+    let record = app.history().ok().and_then(|h| {
+        h.begin(
+            Action::Install,
+            Kind::Formula,
+            std::slice::from_ref(&id),
+            &format!("recover {id} {version}"),
+        )
+        .ok()
+    });
+
+    let outcome = recover(&app, brew, &id, &version, channel).await;
+
+    let changes = match (&before, state::installed(brew).await) {
+        (Some(before), Ok(after)) => diff::diff(before, &after),
+        _ => Vec::new(),
+    };
+    if let (Ok(history), Some(op)) = (app.history(), record) {
+        let error = outcome.as_ref().err().map(|e| e.to_string());
+        let _ = history.finish(op, outcome.is_ok(), false, error.as_deref(), &changes);
+    }
+
+    outcome
+}
+
+async fn recover(
+    app: &State<'_, App>,
+    brew: &crate::brew::Brew,
+    id: &str,
+    version: &str,
+    channel: Channel<Event>,
+) -> Result<String> {
+    let plan = rollback::recovery_plan(brew, app.http(), id, version).await?;
+
+    // Each step streams into the console like any other operation, so the user
+    // watches the download finish before their working version is touched.
+    for (index, step) in plan.steps(id).into_iter().enumerate() {
+        let args: Vec<&str> = step.iter().map(String::as_str).collect();
+        let outcome = app.runner.run_raw(brew, &args, channel.clone()).await;
+
+        if let Err(e) = outcome {
+            // Steps 0 and 1 leave the machine as it was. A failure at step 2
+            // means the old version is gone and the new one did not land, so
+            // put the original back before reporting.
+            if index == 2 {
+                let _ = rollback::reinstall_original(brew, id).await;
+                return Err(crate::Error::Catalog(format!(
+                    "recovering {id} {version} failed after the current version \
+                     was removed, so it has been reinstalled: {e}"
+                )));
+            }
+            return Err(e);
+        }
+    }
+
+    Ok(plan.formula)
+}
+
+/// Put the newest installed version back in charge after a recovery.
+#[tauri::command]
+pub async fn rollback_return_to_latest(app: State<'_, App>, id: String) -> Result<()> {
+    rollback::return_to_latest(app.brew()?, &id).await
 }
 
 #[tauri::command]

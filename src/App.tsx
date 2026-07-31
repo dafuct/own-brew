@@ -74,7 +74,7 @@ export default function App() {
     void api.services().then(setServices).catch(() => undefined);
   }, [refreshLocalState]);
 
-  const { operation, run, cancel, dismiss } = useOperations(onSettled);
+  const { operation, run, recover, cancel, dismiss } = useOperations(onSettled);
 
   useEffect(() => {
     api
@@ -122,6 +122,11 @@ export default function App() {
 
   const busy = operation.running;
   const onRun = useCallback((request: OpRequest) => void run(request), [run]);
+
+  const onRecover = useCallback(
+    (id: string, version: string) => void recover(id, version),
+    [recover],
+  );
 
   const updateCount = outdated
     ? outdated.formulae.filter((f) => !f.pinned).length + outdated.casks.length
@@ -194,6 +199,7 @@ export default function App() {
           busy={busy}
           refreshToken={refreshToken}
           onChanged={() => void refreshLocalState()}
+          onRecover={onRecover}
         />
       )}
 

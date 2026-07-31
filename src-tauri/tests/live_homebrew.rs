@@ -252,3 +252,60 @@ async fn disk_footprint_matches_the_rollback_targets() {
     assert!(footprint.superseded_bytes <= footprint.cellar_bytes);
     assert!(footprint.total_bytes >= footprint.cellar_bytes);
 }
+
+// ------------------------------------------------------------- phase 4 ---
+
+/// Recovering a version that is not on disk.
+///
+/// This is the product's central promise generalised: the formula is located
+/// in homebrew-core's history, written into own-brew's tap, and Homebrew
+/// itself confirms the version before anything would be installed.
+///
+/// Skips when GitHub's anonymous rate limit is exhausted.
+#[tokio::test]
+async fn recovers_a_version_that_is_not_on_disk() {
+    let Some(brew) = brew() else { return };
+    let http = reqwest::Client::builder()
+        .user_agent("own-brew-test")
+        .build()
+        .unwrap();
+
+    // A version of jq that is not installed here.
+    let plan = match own_brew_lib::rollback::recovery_plan(&brew, &http, "jq", "1.8.1").await {
+        Ok(plan) => plan,
+        Err(e) if e.to_string().contains("rate limit") => return,
+        Err(e) if e.to_string().contains("already on disk") => return,
+        Err(e) => panic!("could not recover jq 1.8.1: {e}"),
+    };
+
+    // The file keeps the original name: `jq@1.8.1` would make Homebrew look
+    // for the bottle at homebrew/core/jq/1.8.1 and 404.
+    assert_eq!(plan.formula, "own-brew/rollback/jq");
+
+    // Fetch first, and only then remove what is installed: a failed download
+    // must never leave the machine without the package.
+    let steps = plan.steps("jq");
+    assert_eq!(steps[0][0], "fetch");
+    assert_eq!(steps[1][0], "uninstall");
+    assert_eq!(steps[2][0], "install");
+    assert_eq!(plan.commit.len(), 40, "provenance must name a real commit");
+    assert!(plan.provenance.contains("homebrew-core"));
+
+    // Homebrew must agree, independently, that this is jq 1.8.1 and poured
+    // from a bottle rather than built from source.
+    let info: own_brew_lib::model::detail::Info = brew
+        .json(&["info", "--json=v2", "--formula", &plan.formula])
+        .await
+        .expect("brew should recognise the materialised formula");
+    let formula = info.formulae.first().expect("one formula");
+    assert_eq!(formula.versions.stable.as_deref(), Some("1.8.1"));
+    assert!(formula.versions.bottle, "a bottle is needed to install it");
+
+    // Asking for a version that never existed must fail cleanly rather than
+    // materialising something wrong.
+    let bogus =
+        own_brew_lib::rollback::recovery_plan(&brew, &http, "jq", "999.999.999").await;
+    assert!(bogus.is_err(), "a version that never shipped must not resolve");
+
+    own_brew_lib::rollback::tap::discard(&brew, "jq", "1.8.1").expect("cleanup");
+}

@@ -8,6 +8,9 @@
 //! to break someone's machine.
 
 pub mod cellar;
+pub mod fetch;
+pub mod published;
+pub mod tap;
 
 use crate::brew::Brew;
 use crate::error::{Error, Result};
@@ -29,6 +32,9 @@ pub enum Source {
     /// own-brew's history says this version was installed once, but no
     /// artifact for it remains.
     HistoryOnly,
+    /// Homebrew published a bottle for it. Nothing local remains, but the
+    /// formula can be recovered from homebrew-core's history.
+    Published,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -66,9 +72,20 @@ impl Candidate {
         Self {
             version,
             source: Source::DownloadCache,
-            restorable: false,
-            note: "Bottle is still cached, but rebuilding its formula needs the \
-                   fetcher that is not implemented yet"
+            restorable: true,
+            note: "Bottle is still cached. Recovering replaces the installed \
+                   version rather than sitting beside it"
+                .to_owned(),
+        }
+    }
+
+    fn published(version: String) -> Self {
+        Self {
+            version,
+            source: Source::Published,
+            restorable: true,
+            note: "Recovered from homebrew-core history. This replaces the \
+                   installed version rather than sitting beside it"
                 .to_owned(),
         }
     }
@@ -77,8 +94,9 @@ impl Candidate {
         Self {
             version,
             source: Source::HistoryOnly,
-            restorable: false,
-            note: "You ran this version before, but nothing for it remains on disk"
+            restorable: true,
+            note: "You ran this version before. Recovering replaces the \
+                   installed version rather than sitting beside it"
                 .to_owned(),
         }
     }
@@ -88,8 +106,9 @@ impl Candidate {
 ///
 /// `catalog_versioned` supplies formula names like `node@22` that homebrew-core
 /// ships in its own right; those are ordinary installs and fully supported.
-pub fn candidates(
+pub async fn candidates(
     brew: &Brew,
+    http: Option<&reqwest::Client>,
     history: Option<&History>,
     kind: Kind,
     id: &str,
@@ -114,10 +133,23 @@ pub fn candidates(
         }
     }
 
+    // Recovered candidates are restricted to versions *older* than the one in
+    // use. A newer bottle sitting in the cache is a pending upgrade, and
+    // offering it under "go back to" would confuse rolling back with moving
+    // forward — the updates view already covers that. Kegs on disk are exempt:
+    // switching between two installed versions is legitimate either way.
+    let older_than_current = |version: &str| match current_version {
+        None => true,
+        Some(current) => matches!(
+            crate::history::diff::compare_versions(version, current),
+            Some(std::cmp::Ordering::Less)
+        ),
+    };
+
     if let Some(cache) = brew.cache_dir() {
         for version in cached_versions(&cache, id) {
             let known = found.iter().any(|c| c.version == version);
-            if !known && Some(version.as_str()) != current_version {
+            if !known && older_than_current(&version) {
                 found.push(Candidate::cached(version));
             }
         }
@@ -127,8 +159,21 @@ pub fn candidates(
         if let Ok(known) = history.known_versions(kind, id) {
             for version in known {
                 let already = found.iter().any(|c| c.version == version.version);
-                if !already && Some(version.version.as_str()) != current_version {
+                if !already && older_than_current(&version.version) {
                     found.push(Candidate::history_only(version.version));
+                }
+            }
+        }
+    }
+
+    // Anything Homebrew ever published, for the common case where nothing
+    // local survives. Capped because a long-lived formula has dozens of
+    // releases and the useful ones are the recent ones.
+    if let (Some(http), Some(current), Kind::Formula) = (http, current_version, kind) {
+        if let Ok(tags) = published::versions(http, id).await {
+            for version in published::older_than(&tags, current).into_iter().take(8) {
+                if !found.iter().any(|c| c.version == version) {
+                    found.push(Candidate::published(version));
                 }
             }
         }
@@ -240,6 +285,98 @@ pub async fn restore_local_keg(brew: &Brew, id: &str, version: &str) -> Result<S
     brew.output(&["ruby", "-e", RELINK, &rack, version]).await
 }
 
+/// Recover a version that is no longer on disk.
+///
+/// Homebrew will not hold two formulae of the same name from different taps,
+/// so the recovered version *replaces* the installed one rather than sitting
+/// beside it. That makes ordering critical, and [`Recovery::steps`] encodes
+/// it: the bottle is downloaded **before** anything is uninstalled, so the
+/// package can never be left missing because a download failed.
+pub async fn recovery_plan(
+    brew: &Brew,
+    http: &reqwest::Client,
+    name: &str,
+    version: &str,
+) -> Result<RecoveryPlan> {
+    validate(name)?;
+    validate(version)?;
+
+    if cellar::rack(brew.prefix(), name).join(version).is_dir() {
+        return Err(Error::Catalog(format!(
+            "{name} {version} is already on disk and can be restored instantly"
+        )));
+    }
+
+    let recovered = fetch::Fetcher { http }.find(name, version).await?;
+    let qualified = tap::materialize(brew, &recovered).await?;
+
+    // Uninstalling would break anything that links against this package, and
+    // Homebrew would refuse anyway — say so before starting rather than
+    // failing halfway.
+    let dependents = crate::impact::dependents(brew, name).await.unwrap_or_default();
+    if !dependents.is_empty() {
+        let _ = tap::discard(brew, name, version);
+        return Err(Error::Catalog(format!(
+            "{} package{} depend on {name} ({}), and recovering a version \
+             requires replacing it. Roll those back first, or use a version \
+             still on disk.",
+            dependents.len(),
+            if dependents.len() == 1 { "" } else { "s" },
+            dependents.join(", ")
+        )));
+    }
+
+    Ok(RecoveryPlan {
+        formula: qualified,
+        provenance: recovered.source_url,
+        commit: recovered.sha,
+    })
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryPlan {
+    /// Fully-qualified name to install, e.g. `own-brew/rollback/jq`.
+    pub formula: String,
+    /// The exact file this came from, so the user can audit it.
+    pub provenance: String,
+    pub commit: String,
+}
+
+impl RecoveryPlan {
+    /// The commands to run, in the only order that is safe.
+    ///
+    /// `fetch` first: it downloads the bottle while the working version is
+    /// still installed, so a network failure costs nothing. Only once the
+    /// artifact is in hand is the current version removed.
+    pub fn steps(&self, name: &str) -> Vec<Vec<String>> {
+        vec![
+            vec!["fetch".into(), "--formula".into(), self.formula.clone()],
+            vec!["uninstall".into(), "--formula".into(), name.to_owned()],
+            vec!["install".into(), "--formula".into(), self.formula.clone()],
+        ]
+    }
+}
+
+/// Put the package back to whatever homebrew/core currently ships.
+///
+/// The mirror image of a recovery: the recovered formula is removed and the
+/// core one installed again.
+pub async fn return_to_latest(brew: &Brew, name: &str) -> Result<()> {
+    validate(name)?;
+    brew.output(&["uninstall", "--formula", name]).await?;
+    brew.output(&["install", "--formula", name]).await?;
+    let _ = tap::discard(brew, name, "");
+    Ok(())
+}
+
+/// Best-effort restoration after a failed recovery.
+pub async fn reinstall_original(brew: &Brew, name: &str) -> Result<()> {
+    validate(name)?;
+    brew.output(&["install", "--formula", name]).await?;
+    Ok(())
+}
+
 /// Reject anything that could be read as an option or escape a path.
 fn validate(value: &str) -> Result<()> {
     let bad = |why: &str| Error::Catalog(format!("{value:?} is not usable: {why}"));
@@ -324,8 +461,8 @@ mod tests {
         assert!(error.to_string().contains("not on disk"));
     }
 
-    #[test]
-    fn the_current_version_is_never_offered_as_a_rollback_target() {
+    #[tokio::test]
+    async fn the_current_version_is_never_offered_as_a_rollback_target() {
         let Ok(brew) = Brew::discover() else { return };
         let dir = Dir::new();
         keg(dir.path(), "demo", "1.0.0");
@@ -336,21 +473,46 @@ mod tests {
         let versions = cellar::kegs(dir.path(), "demo");
         assert_eq!(versions, vec!["1.0.0", "2.0.0"]);
 
-        let found = candidates(&brew, None, Kind::Formula, "definitely-not-installed", None, &[]);
+        let found =
+            candidates(&brew, None, None, Kind::Formula, "definitely-not-installed", None, &[])
+                .await;
         assert!(found.is_empty());
     }
 
-    #[test]
-    fn versioned_formulae_are_offered_as_supported_restores() {
+    #[tokio::test]
+    async fn a_newer_cached_bottle_is_not_offered_as_a_rollback() {
+        // openssl@3 3.6.2 installed with 3.6.3 sitting in the download cache:
+        // that is an upgrade waiting to happen, not somewhere to go back to.
+        let Ok(brew) = Brew::discover() else { return };
+        // No http client: this checks the local sources only.
+        let found = candidates(&brew, None, None, Kind::Formula, "openssl@3", Some("3.6.2"), &[])
+            .await;
+        for candidate in &found {
+            if candidate.source == Source::DownloadCache || candidate.source == Source::HistoryOnly
+            {
+                assert_eq!(
+                    crate::history::diff::compare_versions(&candidate.version, "3.6.2"),
+                    Some(std::cmp::Ordering::Less),
+                    "{} is not older than what is installed",
+                    candidate.version
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn versioned_formulae_are_offered_as_supported_restores() {
         let Ok(brew) = Brew::discover() else { return };
         let found = candidates(
             &brew,
+            None,
             None,
             Kind::Formula,
             "not-installed-anywhere",
             None,
             &["node@22".to_owned()],
-        );
+        )
+        .await;
         assert_eq!(found.len(), 1);
         assert!(found[0].restorable);
         assert_eq!(found[0].version, "22");
@@ -373,19 +535,13 @@ mod tests {
     }
 
     /// Against the real machine: every locally-offered candidate must exist.
-    #[test]
-    fn real_local_candidates_are_all_on_disk() {
+    #[tokio::test]
+    async fn real_local_candidates_are_all_on_disk() {
         let Ok(brew) = Brew::discover() else { return };
         for (name, versions) in cellar::inventory(brew.prefix()).into_iter().take(30) {
             let current = versions.last().cloned();
-            let found = candidates(
-                &brew,
-                None,
-                Kind::Formula,
-                &name,
-                current.as_deref(),
-                &[],
-            );
+            let found =
+                candidates(&brew, None, None, Kind::Formula, &name, current.as_deref(), &[]).await;
             for candidate in found.iter().filter(|c| c.source == Source::LocalKeg) {
                 assert!(
                     cellar::rack(brew.prefix(), &name).join(&candidate.version).is_dir(),

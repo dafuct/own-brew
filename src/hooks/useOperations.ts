@@ -112,6 +112,37 @@ export function useOperations(onSettled?: () => void) {
     [handle, onSettled],
   );
 
+  /** Recovering an off-disk version: same console, different command. */
+  const recover = useCallback(
+    async (id: string, version: string) => {
+      setOperation({ ...IDLE, running: true, phase: `Recovering ${id} ${version}` });
+      lineKey.current = 0;
+      append(`Looking for ${id} ${version} in homebrew-core history…`, "phase");
+      try {
+        const formula = await api.rollbackRecover(id, version, handle);
+        setOperation((op) => ({
+          ...op,
+          running: false,
+          succeeded: true,
+          finishedAt: Date.now(),
+          phase: `Now running ${formula}`,
+        }));
+      } catch (e) {
+        const error = asBrewError(e);
+        setOperation((op) => ({
+          ...op,
+          running: false,
+          error,
+          finishedAt: Date.now(),
+          phase: "Failed",
+        }));
+      } finally {
+        onSettled?.();
+      }
+    },
+    [handle, append, onSettled],
+  );
+
   const cancel = useCallback(async () => {
     setOperation((op) => {
       if (op.id !== null) void api.cancel(op.id).catch(() => undefined);
@@ -121,5 +152,5 @@ export function useOperations(onSettled?: () => void) {
 
   const dismiss = useCallback(() => setOperation(IDLE), []);
 
-  return { operation, run, cancel, dismiss };
+  return { operation, run, recover, cancel, dismiss };
 }

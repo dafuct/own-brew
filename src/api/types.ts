@@ -213,7 +213,12 @@ export interface Operation {
   changes: Change[];
 }
 
-export type RollbackSource = "local_keg" | "download_cache" | "versioned_formula" | "history_only";
+export type RollbackSource =
+  | "local_keg"
+  | "download_cache"
+  | "versioned_formula"
+  | "history_only"
+  | "published";
 
 export interface RollbackCandidate {
   version: string;
