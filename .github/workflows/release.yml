@@ -11,20 +11,14 @@ jobs:
     permissions:
       contents: write
 
-    strategy:
-      matrix:
-        # Apple Silicon and Intel are separate binaries; a universal build
-        # would double the download for everyone to spare one architecture.
-        include:
-          - target: aarch64-apple-darwin
-          - target: x86_64-apple-darwin
-
     steps:
       - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          # A universal binary is lipo'd from both slices, so both targets must
+          # be installed even though only one artifact comes out.
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -61,7 +55,10 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          args: --target ${{ matrix.target }}
+          # One download that runs on both Apple Silicon and Intel. It costs
+          # every user the other architecture's bytes, which is the price of
+          # never making anyone choose the wrong file.
+          args: --target universal-apple-darwin
           tagName: ${{ github.ref_name }}
           releaseName: own-brew ${{ github.ref_name }}
           releaseBody: |
