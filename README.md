@@ -6,10 +6,10 @@ Every Homebrew GUI answers *what can I install?* own-brew also answers the
 questions that actually cost time: *what changed, was it safe, and can I take
 it back?*
 
-> Status: phase 2. Rollback works: a superseded version still on disk can be
-> restored from the UI, verified end to end against a real installation. The
-> operation log and the update-policy engine are in. Restoring a version that
-> is *not* on disk is still open — see "What is not done" below.
+> Status: phase 3. Rollback, the operation log and update policy all work.
+> Added: a vulnerability view, an upgrade impact preview, and a disk view that
+> shows what keeping your undo actually costs. Restoring a version that is
+> *not* on disk is still open — see "What is not done" below.
 
 ## Why it exists
 
@@ -28,7 +28,15 @@ That gap is the entire product:
   ground between `brew upgrade` (everything, now) and `brew pin` (never).
 - **An operation log** that records what each run actually changed, including
   dependencies you never named.
-- **Upgrade impact preview (phase 3).** See the risk before applying it.
+- **Upgrade impact preview.** Two independent axes, never one blended score:
+  *risk* (how many installed packages depend on this, how far the version
+  moves, how often it fails to build for others) and *urgency* (known
+  vulnerabilities in the version you are running). Collapsing them would hide
+  the case that matters most — a frightening upgrade you should do anyway.
+- **Known vulnerabilities**, from Homebrew's own `brew vulns`, with its
+  coverage gaps stated rather than glossed over.
+- **A disk view** that names the trade-off: superseded versions *are* the undo
+  capability, and reclaiming that space removes it.
 
 ## What makes rollback possible
 
@@ -80,6 +88,9 @@ src-tauri/src/
   history/   SQLite operation log; what each run actually changed
   rollback/  restorable versions, and going back to one
   policy/    per-package update rules and the decisions they produce
+  security/  known vulnerabilities, via brew vulns
+  impact/    risk and urgency for a pending upgrade
+  disk/      what Homebrew costs, and what reclaiming would give back
   commands   thin IPC wrappers
 src/         React 19 + TypeScript
 ```
@@ -110,6 +121,20 @@ confirmed against the Cellar.
 prose; own-brew compares the installed set before and after instead, which
 stays accurate for packages the user never named, such as dependencies pulled
 in by an install.
+
+**Blast radius is computed by inverting the installed graph once.** Asking
+`brew uses --installed` per package costs a process each and would take the
+better part of a minute for a full update list. Inverting the
+`runtime_dependencies` already present in `brew info --json=v2 --installed`
+gives the same answer for everything at no extra cost — verified to match
+`brew uses` exactly, and guarded by a test that keeps checking. Inverting the
+plain `dependencies` field instead would silently under-report, finding 9
+dependents for `openssl@3` where Homebrew reports 24.
+
+**A clean vulnerability report is not a clean bill of health.** `brew vulns`
+covers formulae only — casks, which is most people's GUI software, are not
+checked at all — and skips formulae with no derivable upstream repository. The
+UI says so on the page rather than showing a reassuring tick.
 
 own-brew never writes to the Cellar itself. It drives the real `brew` CLI, so
 its view cannot drift from Homebrew's.

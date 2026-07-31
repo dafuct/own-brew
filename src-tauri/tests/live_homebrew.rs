@@ -176,3 +176,79 @@ async fn detail_for_an_unknown_package_fails_cleanly() {
     let err = result.expect_err("unknown formula must not succeed");
     assert_eq!(err.kind(), "brew_failed");
 }
+
+// ------------------------------------------------------------- phase 3 ---
+
+/// The security scan against the real machine.
+///
+/// `brew vulns` exits non-zero when it finds something, so a successful scan
+/// here also proves that exit code is not mistaken for a failure.
+#[tokio::test]
+async fn security_scan_against_the_real_machine() {
+    let Some(brew) = brew() else { return };
+    let report = own_brew_lib::security::scan(&brew)
+        .await
+        .expect("a scan that finds vulnerabilities must not be an error");
+
+    assert_eq!(
+        report.critical + report.high + report.medium + report.low + report.unknown,
+        report.total
+    );
+    for package in &report.packages {
+        assert!(!package.formula.is_empty());
+        assert!(
+            package.vulnerabilities.iter().all(|v| !v.id.is_empty()),
+            "{} reported an advisory with no identifier",
+            package.formula
+        );
+    }
+}
+
+/// The full impact assessment over whatever is actually outdated.
+#[tokio::test]
+async fn impact_assessment_over_real_pending_updates() {
+    let Some(brew) = brew() else { return };
+    let http = reqwest::Client::new();
+
+    let Ok(assessments) = own_brew_lib::impact::assess_outdated(&brew, &http).await else {
+        return; // offline: analytics unavailable
+    };
+
+    for assessment in &assessments {
+        assert!(!assessment.package.is_empty());
+        assert!(
+            !assessment.reasons.is_empty(),
+            "{} was assessed with no explanation, which the UI would render blank",
+            assessment.package
+        );
+        // A security finding must never be reported without a severity.
+        if assessment.known_vulnerabilities > 0 {
+            assert!(assessment.worst_severity.is_some());
+        }
+    }
+
+    // Sorted most-urgent first.
+    let urgencies: Vec<_> = assessments.iter().map(|a| a.urgency).collect();
+    let mut sorted = urgencies.clone();
+    sorted.sort_by(|a, b| b.cmp(a));
+    assert_eq!(urgencies, sorted, "assessments must lead with the urgent ones");
+}
+
+/// The disk footprint, and the claim that reclaiming costs you your undo.
+#[tokio::test]
+async fn disk_footprint_matches_the_rollback_targets() {
+    let Some(brew) = brew() else { return };
+    let footprint = own_brew_lib::disk::footprint(&brew).await.expect("disk scan");
+
+    // Every byte offered as reclaimable belongs to a keg that really exists,
+    // and every such keg is one the rollback engine would offer to restore.
+    for keg in &footprint.superseded {
+        let path = own_brew_lib::rollback::cellar::rack(brew.prefix(), &keg.formula)
+            .join(&keg.version);
+        assert!(path.is_dir(), "{} {} is not on disk", keg.formula, keg.version);
+        assert!(keg.bytes > 0, "{} {} measured as empty", keg.formula, keg.version);
+    }
+
+    assert!(footprint.superseded_bytes <= footprint.cellar_bytes);
+    assert!(footprint.total_bytes >= footprint.cellar_bytes);
+}

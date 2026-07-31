@@ -13,6 +13,9 @@ use crate::model::detail::Formula;
 use crate::ops::{Action, Event, Request};
 use crate::policy::{Decision, Policy};
 use crate::rollback::{self, Candidate};
+use crate::security;
+use crate::impact;
+use crate::disk;
 use crate::state::{self, InstalledPackage, Summary};
 use serde::Serialize;
 use tauri::ipc::Channel;
@@ -258,6 +261,24 @@ pub async fn policy_decisions(app: State<'_, App>) -> Result<Vec<Decision>> {
         },
         |kind, package, version| history.first_seen(kind, package, version).ok().flatten(),
     ))
+}
+
+/// Known vulnerabilities across everything installed.
+#[tauri::command]
+pub async fn security_scan(app: State<'_, App>) -> Result<security::Report> {
+    security::scan(app.brew()?).await
+}
+
+/// Risk and urgency for everything currently outdated.
+#[tauri::command]
+pub async fn impact_all(app: State<'_, App>) -> Result<Vec<impact::Assessment>> {
+    impact::assess_outdated(app.brew()?, app.http()).await
+}
+
+/// What Homebrew costs in disk, and what reclaiming would give back.
+#[tauri::command]
+pub async fn disk_footprint(app: State<'_, App>) -> Result<disk::Footprint> {
+    disk::footprint(app.brew()?).await
 }
 
 #[tauri::command]

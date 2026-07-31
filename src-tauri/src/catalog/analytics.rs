@@ -54,6 +54,21 @@ pub async fn fetch(http: &reqwest::Client, kind: Kind) -> HashMap<String, u64> {
     }
 }
 
+/// Build failures per formula over the last 30 days.
+///
+/// Used as a proxy for "this formula is currently troublesome". Absent data
+/// degrades to an empty map rather than an error.
+pub async fn build_errors(http: &reqwest::Client) -> HashMap<String, u64> {
+    let url = format!("{API_BASE}/build-error/30d.json");
+    match load(http, &url).await {
+        Ok(counts) => counts,
+        Err(e) => {
+            tracing::warn!(%url, error = %e, "build-error analytics unavailable");
+            HashMap::new()
+        }
+    }
+}
+
 async fn load(http: &reqwest::Client, url: &str) -> crate::Result<HashMap<String, u64>> {
     let report: Report = http.get(url).send().await?.error_for_status()?.json().await?;
     Ok(report

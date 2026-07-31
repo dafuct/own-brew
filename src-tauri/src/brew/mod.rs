@@ -86,6 +86,41 @@ impl Brew {
         })
     }
 
+    /// Like [`Brew::json`], but treats the listed exit codes as success.
+    ///
+    /// Some subcommands use the exit status to report a *finding* rather than
+    /// a failure — `brew vulns` exits 1 when it discovers vulnerabilities,
+    /// which is exactly the case we want to read.
+    pub async fn json_tolerating<T: DeserializeOwned>(
+        &self,
+        args: &[&str],
+        accepted: &[i32],
+    ) -> Result<T> {
+        let output = self.command(args).output().await?;
+        let code = output.status.code();
+
+        let succeeded = output.status.success() || code.is_some_and(|c| accepted.contains(&c));
+        if !succeeded {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+            return Err(match code {
+                Some(code) => Error::BrewFailed {
+                    command: args.join(" "),
+                    code,
+                    stderr,
+                },
+                None => Error::BrewTerminated {
+                    command: args.join(" "),
+                },
+            });
+        }
+
+        let raw = String::from_utf8_lossy(&output.stdout);
+        serde_json::from_str(&raw).map_err(|source| Error::Parse {
+            command: args.join(" "),
+            source,
+        })
+    }
+
     /// Spawn a long-running command whose output is streamed line by line.
     pub fn stream(&self, args: &[&str]) -> Result<Stream> {
         Stream::spawn(self.command(args), args.join(" "))

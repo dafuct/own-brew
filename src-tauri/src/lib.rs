@@ -2,12 +2,15 @@ pub mod app;
 pub mod brew;
 pub mod catalog;
 pub mod commands;
+pub mod disk;
 pub mod error;
 pub mod history;
+pub mod impact;
 pub mod model;
 pub mod ops;
 pub mod policy;
 pub mod rollback;
+pub mod security;
 pub mod state;
 
 pub use error::{Error, Result};
@@ -60,6 +63,9 @@ pub fn run() {
             commands::policy_list,
             commands::policy_set,
             commands::policy_decisions,
+            commands::security_scan,
+            commands::impact_all,
+            commands::disk_footprint,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

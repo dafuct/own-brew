@@ -18,6 +18,9 @@ pub enum Action {
     Unpin,
     /// Refresh Homebrew itself and its taps.
     Update,
+    /// Reclaim disk: removes superseded kegs and stale downloads. This is the
+    /// one operation that destroys rollback targets.
+    Cleanup,
 }
 
 impl Action {
@@ -29,6 +32,7 @@ impl Action {
             Action::Pin => "pin",
             Action::Unpin => "unpin",
             Action::Update => "update",
+            Action::Cleanup => "cleanup",
         }
     }
 
@@ -40,7 +44,7 @@ impl Action {
     /// `brew upgrade` with no arguments upgrades everything, which is a
     /// legitimate request; `brew install` with none is meaningless.
     fn allows_no_targets(self) -> bool {
-        matches!(self, Action::Upgrade | Action::Update)
+        matches!(self, Action::Upgrade | Action::Update | Action::Cleanup)
     }
 }
 
@@ -75,8 +79,8 @@ pub fn args(request: &Request) -> Result<Vec<String>> {
 
     let mut args = vec![request.action.verb().to_owned()];
 
-    // `brew update` takes no package arguments at all.
-    if request.action == Action::Update {
+    // These take no package arguments and no --cask.
+    if matches!(request.action, Action::Update | Action::Cleanup) {
         return Ok(args);
     }
 
@@ -154,6 +158,12 @@ mod tests {
     fn install_without_targets_is_rejected() {
         let err = args(&request(Action::Install, Kind::Formula, &[])).unwrap_err();
         assert!(err.to_string().contains("needs at least one package"));
+    }
+
+    #[test]
+    fn cleanup_takes_no_package_arguments() {
+        let args = args(&request(Action::Cleanup, Kind::Cask, &[])).unwrap();
+        assert_eq!(args, ["cleanup"], "no --cask, no targets");
     }
 
     #[test]

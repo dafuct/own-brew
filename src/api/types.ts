@@ -161,7 +161,14 @@ export interface Service {
   exit_code: number | null;
 }
 
-export type Action = "install" | "uninstall" | "upgrade" | "pin" | "unpin" | "update";
+export type Action =
+  | "install"
+  | "uninstall"
+  | "upgrade"
+  | "pin"
+  | "unpin"
+  | "update"
+  | "cleanup";
 
 export interface OpRequest {
   action: Action;
@@ -236,4 +243,69 @@ export interface Decision {
   due: boolean;
   reason: string;
   dueAt: number | null;
+}
+
+// ------------------------------------------------------------- phase 3 ---
+
+export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN";
+
+export interface Vulnerability {
+  id: string;
+  severity: Severity;
+  summary: string | null;
+  aliases: string[];
+  fixed_versions: string[];
+}
+
+export interface PackageVulnerabilities {
+  formula: string;
+  version: string | null;
+  repoUrl: string | null;
+  vulnerabilities: Vulnerability[];
+}
+
+export interface SecurityReport {
+  packages: PackageVulnerabilities[];
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  unknown: number;
+  total: number;
+  scannedAt: number;
+}
+
+export type Level = "low" | "moderate" | "high";
+export type VersionJump = "major" | "minor" | "patch" | "revision" | "unknown";
+
+export interface Assessment {
+  package: string;
+  currentVersion: string | null;
+  newVersion: string | null;
+  jump: VersionJump;
+  dependents: string[];
+  buildErrors30d: number | null;
+  deprecated: boolean;
+  knownVulnerabilities: number;
+  worstSeverity: Severity | null;
+  risk: Level;
+  urgency: Level;
+  reasons: string[];
+  undoable: boolean;
+}
+
+export interface SupersededKeg {
+  formula: string;
+  version: string;
+  bytes: number;
+}
+
+export interface Footprint {
+  cellarBytes: number;
+  caskroomBytes: number;
+  cacheBytes: number;
+  totalBytes: number;
+  superseded: SupersededKeg[];
+  supersededBytes: number;
+  cleanupEstimateBytes: number | null;
 }

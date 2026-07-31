@@ -1,12 +1,21 @@
 import type { CatalogStats } from "../api/types";
 
-export type View = "discover" | "installed" | "updates" | "history" | "services";
+export type View =
+  | "discover"
+  | "installed"
+  | "updates"
+  | "security"
+  | "history"
+  | "disk"
+  | "services";
 
 const NAV: { view: View; glyph: string; label: string }[] = [
   { view: "discover", glyph: "⌕", label: "Discover" },
   { view: "installed", glyph: "▤", label: "Installed" },
   { view: "updates", glyph: "↑", label: "Updates" },
+  { view: "security", glyph: "⚿", label: "Security" },
   { view: "history", glyph: "◷", label: "History" },
+  { view: "disk", glyph: "▦", label: "Disk" },
   { view: "services", glyph: "◉", label: "Services" },
 ];
 
@@ -47,7 +56,9 @@ export function Rail({
             <span className="navitem__label">{label}</span>
             {count !== undefined && count > 0 && (
               <span
-                className={`navitem__count${target === "updates" ? " navitem__count--alert" : ""}`}
+                className={`navitem__count${
+                  target === "updates" || target === "security" ? " navitem__count--alert" : ""
+                }`}
               >
                 {count}
               </span>

@@ -17,6 +17,8 @@ import { InstalledList } from "./components/InstalledView";
 import { Rail, type View } from "./components/Rail";
 import { ServicesList, UpdatesList } from "./components/UpdatesView";
 import { HistoryList } from "./components/HistoryView";
+import { SecurityView } from "./components/SecurityView";
+import { DiskView } from "./components/DiskView";
 import { useOperations } from "./hooks/useOperations";
 
 type Theme = "dark" | "light";
@@ -28,6 +30,7 @@ export default function App() {
   const [installed, setInstalled] = useState<InstalledView | null>(null);
   const [outdated, setOutdated] = useState<Outdated | null>(null);
   const [services, setServices] = useState<Service[] | null>(null);
+  const [vulnerable, setVulnerable] = useState<number | undefined>(undefined);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [error, setError] = useState<BrewError | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -83,6 +86,11 @@ export default function App() {
         // The catalog is still warming up in the background at this point, so
         // a failure here just means "not ready yet".
         api.catalogStats().then(setStats).catch(() => undefined);
+        // Runs a few seconds; the rail badge appears when it lands.
+        api
+          .securityScan()
+          .then((report) => setVulnerable(report.critical + report.high))
+          .catch(() => undefined);
       })
       .catch((e) => setError(asBrewError(e)));
   }, [refreshLocalState]);
@@ -138,6 +146,7 @@ export default function App() {
           counts={{
             installed: installed?.summary.requested,
             updates: updateCount,
+            security: vulnerable,
             services: services?.filter((s) => s.status === "started").length,
           }}
           stats={stats}
@@ -167,7 +176,11 @@ export default function App() {
           {view === "updates" && (
             <UpdatesList data={outdated} onSelect={setSelection} onRun={onRun} busy={busy} />
           )}
+          {view === "security" && <SecurityView refreshToken={refreshToken} />}
           {view === "history" && <HistoryList refreshToken={refreshToken} />}
+          {view === "disk" && (
+            <DiskView refreshToken={refreshToken} onRun={onRun} busy={busy} />
+          )}
           {view === "services" && <ServicesList services={services} />}
         </main>
       </div>

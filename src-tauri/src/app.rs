@@ -68,6 +68,10 @@ impl App {
         })
     }
 
+    pub fn http(&self) -> &reqwest::Client {
+        &self.http
+    }
+
     pub fn brew(&self) -> Result<&Brew> {
         self.brew.as_ref().ok_or(Error::BrewNotFound)
     }

@@ -16,6 +16,9 @@ import type {
   RollbackCandidate,
   Policy,
   Decision,
+  SecurityReport,
+  Assessment,
+  Footprint,
 } from "./types";
 
 /** Tauri rejects with our serialized Error shape; anything else is a bug. */
@@ -69,4 +72,8 @@ export const api = {
   policies: () => invoke<Policy[]>("policy_list"),
   setPolicy: (policy: Policy) => invoke<void>("policy_set", { policy }),
   decisions: () => invoke<Decision[]>("policy_decisions"),
+
+  securityScan: () => invoke<SecurityReport>("security_scan"),
+  impactAll: () => invoke<Assessment[]>("impact_all"),
+  diskFootprint: () => invoke<Footprint>("disk_footprint"),
 };
