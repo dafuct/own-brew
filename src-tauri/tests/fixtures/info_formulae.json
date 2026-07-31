@@ -1,0 +1,688 @@
+{
+  "formulae": [
+    {
+      "name": "jq",
+      "full_name": "jq",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [],
+      "versioned_formulae": [],
+      "desc": "Lightweight and flexible command-line JSON processor",
+      "license": "MIT",
+      "homepage": "https://jqlang.github.io/jq/",
+      "versions": {
+        "stable": "1.8.2",
+        "head": "HEAD",
+        "bottle": true
+      },
+      "urls": {
+        "stable": {
+          "url": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-1.8.2.tar.gz",
+          "tag": null,
+          "revision": null,
+          "using": null,
+          "checksum": "71b8d6e8f5fe81f6c6d0d110e3892251f6ce76ed095abd315e26e6e1193af3af"
+        },
+        "head": {
+          "url": "https://github.com/jqlang/jq.git",
+          "branch": "master",
+          "using": null
+        }
+      },
+      "patches": [],
+      "revision": 0,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "bottle": {
+        "stable": {
+          "rebuild": 0,
+          "root_url": "https://ghcr.io/v2/homebrew/core",
+          "files": {
+            "arm64_tahoe": {
+              "cellar": ":any",
+              "url": "https://ghcr.io/v2/homebrew/core/jq/blobs/sha256:f6ec821177b4c55fefb4c58f8e6f5d8386a5fce0a3c5d8811c4d6a0cc818dead",
+              "sha256": "f6ec821177b4c55fefb4c58f8e6f5d8386a5fce0a3c5d8811c4d6a0cc818dead"
+            }
+          }
+        }
+      },
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [],
+      "dependencies": [
+        "oniguruma"
+      ],
+      "test_dependencies": [],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [],
+      "uses_from_macos_bounds": [],
+      "requirements": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [],
+      "caveats": null,
+      "installed": [
+        {
+          "version": "1.8.2",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1784659530,
+          "runtime_dependencies": [
+            {
+              "full_name": "oniguruma",
+              "version": "6.9.10",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "6.9.10",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": true
+        }
+      ],
+      "linked_keg": "1.8.2",
+      "pinned": false,
+      "outdated": false,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "post_install_steps": [],
+      "post_install_defined": false,
+      "service": null,
+      "tap_git_head": "1abd8bf112c7703b9f9d3cc1223f588271c8e2da",
+      "ruby_source_path": "Formula/j/jq.rb",
+      "ruby_source_checksum": {
+        "sha256": "ba57c8f3111b9eb472c375dddb37217be71af01d6e067e29b58c230a8e1ffe13"
+      },
+      "head_dependencies": {
+        "build_dependencies": [
+          "autoconf",
+          "automake",
+          "libtool"
+        ],
+        "dependencies": [
+          "oniguruma"
+        ],
+        "test_dependencies": [],
+        "recommended_dependencies": [],
+        "optional_dependencies": [],
+        "uses_from_macos": [],
+        "uses_from_macos_bounds": []
+      }
+    },
+    {
+      "name": "ffmpeg",
+      "full_name": "ffmpeg",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [
+        "ffmpeg@8"
+      ],
+      "versioned_formulae": [
+        "ffmpeg@7",
+        "ffmpeg@6",
+        "ffmpeg@5",
+        "ffmpeg@4",
+        "ffmpeg@2.8"
+      ],
+      "desc": "Play, record, convert, and stream select audio and video codecs",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://ffmpeg.org/",
+      "versions": {
+        "stable": "8.1.2",
+        "head": "HEAD",
+        "bottle": true
+      },
+      "urls": {
+        "stable": {
+          "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+          "tag": null,
+          "revision": null,
+          "using": null,
+          "checksum": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c"
+        },
+        "head": {
+          "url": "https://github.com/FFmpeg/FFmpeg.git",
+          "branch": "master",
+          "using": null
+        }
+      },
+      "patches": [],
+      "revision": 1,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "bottle": {
+        "stable": {
+          "rebuild": 0,
+          "root_url": "https://ghcr.io/v2/homebrew/core",
+          "files": {
+            "arm64_tahoe": {
+              "cellar": "/opt/homebrew/Cellar",
+              "url": "https://ghcr.io/v2/homebrew/core/ffmpeg/blobs/sha256:90fde7486968511145ad359f060eb19adf4e4fa26184e60731dbcff3e4b0243b",
+              "sha256": "90fde7486968511145ad359f060eb19adf4e4fa26184e60731dbcff3e4b0243b"
+            }
+          }
+        }
+      },
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [
+        "pkgconf"
+      ],
+      "dependencies": [
+        "dav1d",
+        "lame",
+        "libvmaf",
+        "libvpx",
+        "openssl@3",
+        "opus",
+        "sdl2-compat",
+        "svt-av1",
+        "x264",
+        "x265"
+      ],
+      "test_dependencies": [],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [
+        "bzip2",
+        "libxml2"
+      ],
+      "uses_from_macos_bounds": [
+        {},
+        {}
+      ],
+      "requirements": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [],
+      "caveats": "ffmpeg-full includes additional tools and libraries that are not included in the regular ffmpeg formula.\n",
+      "installed": [
+        {
+          "version": "8.1.1",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1778152366,
+          "runtime_dependencies": [
+            {
+              "full_name": "dav1d",
+              "version": "1.5.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "1.5.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "lame",
+              "version": "3.100",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.100",
+              "declared_directly": true
+            },
+            {
+              "full_name": "libvmaf",
+              "version": "3.1.0",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.1.0",
+              "declared_directly": true
+            },
+            {
+              "full_name": "libvpx",
+              "version": "1.16.0",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "1.16.0",
+              "declared_directly": true
+            },
+            {
+              "full_name": "ca-certificates",
+              "version": "2026-03-19",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "2026-03-19",
+              "declared_directly": false
+            },
+            {
+              "full_name": "openssl@3",
+              "version": "3.6.2",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.6.2",
+              "declared_directly": true
+            },
+            {
+              "full_name": "opus",
+              "version": "1.6.1",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "1.6.1",
+              "declared_directly": true
+            },
+            {
+              "full_name": "sdl2",
+              "version": "2.32.10",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "2.32.10",
+              "declared_directly": true
+            },
+            {
+              "full_name": "svt-av1",
+              "version": "4.1.0",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "4.1.0",
+              "declared_directly": true
+            },
+            {
+              "full_name": "x264",
+              "version": "r3222",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "r3222",
+              "declared_directly": true
+            },
+            {
+              "full_name": "x265",
+              "version": "4.2",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "4.2",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": true
+        }
+      ],
+      "linked_keg": "8.1.1",
+      "pinned": false,
+      "outdated": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "post_install_steps": [],
+      "post_install_defined": false,
+      "service": null,
+      "tap_git_head": "1abd8bf112c7703b9f9d3cc1223f588271c8e2da",
+      "ruby_source_path": "Formula/f/ffmpeg.rb",
+      "ruby_source_checksum": {
+        "sha256": "52c0f3844a216a6c8e6b7c9e1883f7fa09bbbe4894c13f4615cdb26922b4ed24"
+      }
+    },
+    {
+      "name": "python@3.14",
+      "full_name": "python@3.14",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [
+        "python",
+        "python3",
+        "python@3"
+      ],
+      "versioned_formulae": [
+        "python@3.13",
+        "python@3.12",
+        "python@3.11",
+        "python@3.10",
+        "python@3.9"
+      ],
+      "desc": "Interpreted, interactive, object-oriented programming language",
+      "license": "Python-2.0",
+      "homepage": "https://www.python.org/",
+      "versions": {
+        "stable": "3.14.6",
+        "head": null,
+        "bottle": true
+      },
+      "urls": {
+        "stable": {
+          "url": "https://www.python.org/ftp/python/3.14.6/Python-3.14.6.tgz",
+          "tag": null,
+          "revision": null,
+          "using": null,
+          "checksum": "74d0d71d0600e477651a077101d6e62d1e2e69b8e992ba18c993dd643b7ba222"
+        }
+      },
+      "patches": [
+        {
+          "strip": "p1",
+          "file": "Patches/python/3.13-sysconfig.diff",
+          "resolves": [
+            {
+              "type": "defect",
+              "id": "https://bugs.python.org/issue43976"
+            }
+          ]
+        }
+      ],
+      "revision": 0,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "bottle": {
+        "stable": {
+          "rebuild": 1,
+          "root_url": "https://ghcr.io/v2/homebrew/core",
+          "files": {
+            "arm64_tahoe": {
+              "cellar": "/opt/homebrew/Cellar",
+              "url": "https://ghcr.io/v2/homebrew/core/python/3.14/blobs/sha256:c3246a28c51f4d6478ce24e908cf2c04c1460982f6a2b576b7173734fceb98eb",
+              "sha256": "c3246a28c51f4d6478ce24e908cf2c04c1460982f6a2b576b7173734fceb98eb"
+            }
+          }
+        }
+      },
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [
+        "pkgconf"
+      ],
+      "dependencies": [
+        "mpdecimal",
+        "openssl@3",
+        "sqlite",
+        "xz",
+        "zstd"
+      ],
+      "test_dependencies": [],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [
+        "bzip2",
+        "expat",
+        "libedit",
+        "libffi",
+        "ncurses"
+      ],
+      "uses_from_macos_bounds": [
+        {},
+        {
+          "since": "sequoia"
+        },
+        {},
+        {},
+        {}
+      ],
+      "requirements": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [
+        "bin/idle3",
+        "bin/pip3",
+        "bin/pydoc3",
+        "bin/python3",
+        "bin/python3-config",
+        "bin/wheel3",
+        "share/man/man1/python3.1",
+        "lib/libpython3.so",
+        "lib/pkgconfig/python3.pc",
+        "lib/pkgconfig/python3-embed.pc",
+        "lib/python3.14/site-packages/pip*",
+        "lib/python3.14/site-packages/wheel*",
+        "Frameworks/Python.framework/Headers",
+        "Frameworks/Python.framework/Python",
+        "Frameworks/Python.framework/Resources",
+        "Frameworks/Python.framework/Versions/Current"
+      ],
+      "caveats": "Python is installed as\n  $HOMEBREW_PREFIX/bin/python3\n\nUnversioned symlinks `python`, `python-config`, `pip` etc. pointing to\n`python3`, `python3-config`, `pip3` etc., respectively, are installed into\n  $HOMEBREW_PREFIX/opt/python@3.14/libexec/bin\n\n`idle3.14` requires tkinter, which is available separately:\n  brew install python-tk@3.14\n\n`dbm.gnu` is available separately:\n  brew install python-gdbm@3.14\n\nFor more information about Homebrew and Python, see: https://docs.brew.sh/Homebrew-and-Python\n",
+      "installed": [
+        {
+          "version": "3.14.5",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1778655829,
+          "runtime_dependencies": [
+            {
+              "full_name": "mpdecimal",
+              "version": "4.0.1",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "4.0.1",
+              "declared_directly": true
+            },
+            {
+              "full_name": "ca-certificates",
+              "version": "2026-03-19",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "2026-03-19",
+              "declared_directly": false
+            },
+            {
+              "full_name": "openssl@3",
+              "version": "3.6.2",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.6.2",
+              "declared_directly": true
+            },
+            {
+              "full_name": "readline",
+              "version": "8.3.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "8.3.3",
+              "declared_directly": false
+            },
+            {
+              "full_name": "sqlite",
+              "version": "3.53.1",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.53.1",
+              "declared_directly": true
+            },
+            {
+              "full_name": "xz",
+              "version": "5.8.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "5.8.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "lz4",
+              "version": "1.10.0",
+              "revision": 0,
+              "bottle_rebuild": 1,
+              "pkg_version": "1.10.0",
+              "declared_directly": false
+            },
+            {
+              "full_name": "zstd",
+              "version": "1.5.7",
+              "revision": 1,
+              "bottle_rebuild": 0,
+              "pkg_version": "1.5.7_1",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": false
+        },
+        {
+          "version": "3.14.6",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1784138333,
+          "runtime_dependencies": [
+            {
+              "full_name": "mpdecimal",
+              "version": "4.0.1",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "4.0.1",
+              "declared_directly": true
+            },
+            {
+              "full_name": "ca-certificates",
+              "version": "2026-05-14",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "2026-05-14",
+              "declared_directly": false
+            },
+            {
+              "full_name": "openssl@3",
+              "version": "3.6.3",
+              "revision": 0,
+              "bottle_rebuild": 1,
+              "pkg_version": "3.6.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "readline",
+              "version": "8.3.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "8.3.3",
+              "declared_directly": false
+            },
+            {
+              "full_name": "sqlite",
+              "version": "3.53.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "3.53.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "xz",
+              "version": "5.8.3",
+              "revision": 0,
+              "bottle_rebuild": 0,
+              "pkg_version": "5.8.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "lz4",
+              "version": "1.10.0",
+              "revision": 0,
+              "bottle_rebuild": 1,
+              "pkg_version": "1.10.0",
+              "declared_directly": false
+            },
+            {
+              "full_name": "zstd",
+              "version": "1.5.7",
+              "revision": 1,
+              "bottle_rebuild": 0,
+              "pkg_version": "1.5.7_1",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": false
+        }
+      ],
+      "linked_keg": "3.14.6",
+      "pinned": false,
+      "outdated": false,
+      "deprecated": false,
+      "deprecation_date": "2030-11-01",
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": {
+        "date": "2030-11-01",
+        "because": "deprecated_upstream",
+        "replacement_formula": null,
+        "replacement_cask": null
+      },
+      "disabled": false,
+      "disable_date": "2031-11-01",
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": {
+        "date": "2031-11-01",
+        "because": "deprecated_upstream",
+        "replacement_formula": null,
+        "replacement_cask": null
+      },
+      "post_install_steps": [
+        {
+          "paths": [
+            {
+              "base": "frameworks",
+              "path": "Python.framework/Versions/{{version.major_minor}}/lib/python{{version.major_minor}}/venv/scripts/**/*"
+            }
+          ],
+          "permissions": "u+w",
+          "non_recursive": true,
+          "guards": [
+            {
+              "condition": "on",
+              "value": "macos",
+              "id": "1"
+            }
+          ],
+          "type": "set_permissions"
+        },
+        {
+          "paths": [
+            {
+              "base": "lib",
+              "path": "python{{version.major_minor}}/venv/scripts/**/*"
+            }
+          ],
+          "permissions": "u+w",
+          "non_recursive": true,
+          "guards": [
+            {
+              "condition": "on",
+              "value": "linux",
+              "id": "2"
+            }
+          ],
+          "type": "set_permissions"
+        }
+      ],
+      "post_install_defined": false,
+      "service": null,
+      "tap_git_head": "1abd8bf112c7703b9f9d3cc1223f588271c8e2da",
+      "ruby_source_path": "Formula/p/python@3.14.rb",
+      "ruby_source_checksum": {
+        "sha256": "67db686b2a0b96593b2ad531b835f127223edc8506a203b0b8c4fc45f8d4c139"
+      }
+    }
+  ],
+  "casks": []
+}

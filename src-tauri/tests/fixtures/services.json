@@ -1,0 +1,16 @@
+[
+  {
+    "name": "ollama",
+    "status": "none",
+    "user": null,
+    "file": "/opt/homebrew/opt/ollama/homebrew.mxcl.ollama.plist",
+    "exit_code": null
+  },
+  {
+    "name": "unbound",
+    "status": "none",
+    "user": null,
+    "file": "/opt/homebrew/opt/unbound/homebrew.mxcl.unbound.plist",
+    "exit_code": null
+  }
+]

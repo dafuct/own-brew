@@ -1,0 +1,109 @@
+/* own-brew visual language: a workshop instrument, not a storefront.
+   Warm metals (copper, brass) on cold slate. Data is always monospaced. */
+
+:root {
+  --font-ui: "Archivo Variable", "Helvetica Neue", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --step--1: 0.75rem;
+  --step-0: 0.8125rem;
+  --step-1: 0.9375rem;
+  --step-2: 1.125rem;
+  --step-3: 1.5rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --rail-width: 208px;
+  --header-height: 52px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Dark is the default: this is a tool that lives next to a terminal. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0d0f0e;
+  --bg-grain: rgba(255, 255, 255, 0.014);
+  --surface: #141817;
+  --surface-raised: #1b201e;
+  --surface-hover: #222826;
+  --surface-active: #2a312e;
+
+  --border: #262d2a;
+  --border-strong: #38423e;
+
+  --text: #e9e6e0;
+  --text-muted: #8d938e;
+  --text-faint: #5f6663;
+
+  /* Copper — the brewing kettle. Our one loud colour. */
+  --accent: #e0975a;
+  --accent-bright: #f2ae74;
+  --accent-dim: rgba(224, 151, 90, 0.14);
+  --accent-line: rgba(224, 151, 90, 0.32);
+
+  --sage: #85b56d;
+  --sage-dim: rgba(133, 181, 109, 0.14);
+  --amber: #ddb257;
+  --amber-dim: rgba(221, 178, 87, 0.14);
+  --rust: #cf6a5e;
+  --rust-dim: rgba(207, 106, 94, 0.14);
+
+  --shadow-drawer: 0 -18px 48px rgba(0, 0, 0, 0.55);
+  --shadow-panel: -18px 0 48px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f4f1ea;
+  --bg-grain: rgba(0, 0, 0, 0.014);
+  --surface: #fdfbf6;
+  --surface-raised: #fffefa;
+  --surface-hover: #efeadf;
+  --surface-active: #e5dfd1;
+
+  --border: #e0d9c9;
+  --border-strong: #c8bfab;
+
+  --text: #1d201e;
+  --text-muted: #6b716c;
+  --text-faint: #969c96;
+
+  --accent: #b2661f;
+  --accent-bright: #93540f;
+  --accent-dim: rgba(178, 102, 31, 0.11);
+  --accent-line: rgba(178, 102, 31, 0.3);
+
+  --sage: #4d7a3a;
+  --sage-dim: rgba(77, 122, 58, 0.12);
+  --amber: #96701a;
+  --amber-dim: rgba(150, 112, 26, 0.12);
+  --rust: #a53f33;
+  --rust-dim: rgba(165, 63, 51, 0.11);
+
+  --shadow-drawer: 0 -18px 40px rgba(60, 50, 35, 0.14);
+  --shadow-panel: -18px 0 40px rgba(60, 50, 35, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
