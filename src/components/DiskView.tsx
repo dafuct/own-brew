@@ -96,11 +96,23 @@ export function DiskView({
             {/* The central trade-off of this app, stated rather than buried. */}
             <p className="disk__note">
               own-brew keeps superseded versions on disk so an upgrade can be undone instantly.
-              Those {footprint.superseded.length === 1 ? "is" : "are"}{" "}
-              <strong className="mono">{bytes(footprint.supersededBytes)}</strong> across{" "}
-              <strong className="mono">{footprint.superseded.length}</strong>{" "}
-              {footprint.superseded.length === 1 ? "version" : "versions"}. Reclaiming that space
-              is fine — it just means those upgrades can no longer be rolled back instantly.
+              {footprint.superseded.length === 0 ? (
+                <> Nothing is being kept right now, so no upgrade can be rolled back instantly.</>
+              ) : footprint.superseded.length === 1 ? (
+                <>
+                  {" "}One is being kept, costing{" "}
+                  <strong className="mono">{bytes(footprint.supersededBytes)}</strong>. Reclaiming
+                  it is fine — it just means that upgrade can no longer be rolled back instantly.
+                </>
+              ) : (
+                <>
+                  {" "}
+                  <strong className="mono">{footprint.superseded.length}</strong> are being kept,
+                  costing <strong className="mono">{bytes(footprint.supersededBytes)}</strong>.
+                  Reclaiming that space is fine — it just means those upgrades can no longer be
+                  rolled back instantly.
+                </>
+              )}
             </p>
 
             {footprint.superseded.length > 0 && (
@@ -152,10 +164,18 @@ export function DiskView({
               <div className="banner" role="alert">
                 <span aria-hidden>⚠</span>
                 <div style={{ flex: 1 }}>
-                  This deletes the{" "}
-                  <strong className="mono">{footprint.superseded.length}</strong> superseded{" "}
-                  {footprint.superseded.length === 1 ? "version" : "versions"} above. Any upgrade
-                  they would have undone becomes irreversible.
+                  {footprint.superseded.length === 1 ? (
+                    <>
+                      This deletes the one superseded version above. The upgrade it would have
+                      undone becomes irreversible.
+                    </>
+                  ) : (
+                    <>
+                      This deletes the{" "}
+                      <strong className="mono">{footprint.superseded.length}</strong> superseded
+                      versions above. Any upgrade they would have undone becomes irreversible.
+                    </>
+                  )}
                   <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 10 }}>
                     <button
                       className="btn btn--sm btn--danger"
@@ -165,7 +185,9 @@ export function DiskView({
                         onRun({ action: "cleanup", kind: "formula", targets: [] });
                       }}
                     >
-                      Delete them and reclaim
+                      {footprint.superseded.length === 1
+                        ? "Delete it and reclaim"
+                        : "Delete them and reclaim"}
                     </button>
                     <button className="btn btn--sm" onClick={() => setConfirming(false)}>
                       Keep my undo

@@ -53,9 +53,23 @@ pub async fn footprint(brew: &Brew) -> Result<Footprint> {
 
         let mut superseded = Vec::new();
         for (formula, versions) in cellar::inventory(&cellar_prefix(&prefix)) {
-            let current = active.get(&formula);
+            // When Homebrew does not recognise a formula it is absent from the
+            // installed list, and treating "no known active version" as "every
+            // keg is superseded" would offer to delete a package's only copy as
+            // though it were an undo point. Real cases on this machine: `snyk`
+            // (untrusted tap), `opencode`, and `sdl2` (delisted in favour of
+            // sdl2-compat) each have exactly one keg.
+            //
+            // Kegs are sorted oldest first, so the newest stands in for the
+            // live version when Homebrew cannot tell us. A single keg is
+            // therefore never superseded.
+            let current = active
+                .get(&formula)
+                .cloned()
+                .or_else(|| versions.last().cloned());
+
             for version in versions {
-                if Some(&version) == current {
+                if Some(&version) == current.as_ref() {
                     continue;
                 }
                 superseded.push(SupersededKeg {
@@ -235,6 +249,27 @@ mod tests {
             single,
             "a hard link must not double-count the same inode"
         );
+    }
+
+    #[tokio::test]
+    async fn a_package_with_one_keg_is_never_offered_for_deletion() {
+        // Guards the bug where an unrecognised formula — `snyk` from an
+        // untrusted tap, or the delisted `sdl2` — had its only keg reported as
+        // a superseded version worth reclaiming.
+        let Ok(brew) = Brew::discover() else { return };
+        let footprint = footprint(&brew).await.expect("disk scan");
+        let inventory = cellar::inventory(brew.prefix());
+
+        for keg in &footprint.superseded {
+            let kegs = inventory.get(&keg.formula).map(Vec::len).unwrap_or(0);
+            assert!(
+                kegs > 1,
+                "{} has {kegs} keg(s) on disk, so {} is the only copy and must \
+                 not be presented as a discardable old version",
+                keg.formula,
+                keg.version
+            );
+        }
     }
 
     /// The real installation. The superseded total is the price own-brew is

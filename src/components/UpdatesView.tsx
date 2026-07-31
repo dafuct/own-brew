@@ -32,6 +32,20 @@ export function UpdatesList({
 
   const urgent = [...impact.values()].filter((a) => a.urgency === "high").length;
 
+  // Computing urgency is pointless if the urgent rows stay buried in an
+  // alphabetical list, so the assessments' own ordering is applied here:
+  // urgent first, then riskiest, then by name. Packages with no assessment
+  // yet keep their original position at the end.
+  const rank = (name: string): number => {
+    const a = impact.get(name);
+    if (!a) return 9;
+    const level = { high: 0, moderate: 1, low: 2 };
+    return level[a.urgency] * 3 + level[a.risk];
+  };
+  const ordered = [...upgradableFormulae].sort(
+    (a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name),
+  );
+
   return (
     <>
       <header className="header">
@@ -91,7 +105,7 @@ export function UpdatesList({
           </div>
         ) : (
           <>
-            {upgradableFormulae.map((f) => (
+            {ordered.map((f) => (
               <UpdateRow
                 key={`formula:${f.name}`}
                 name={f.name}
