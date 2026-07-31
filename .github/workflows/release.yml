@@ -11,6 +11,11 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      # `secrets` cannot be read from a step-level `if`, so the decision is
+      # made once here and the steps branch on it.
+      SIGNED: ${{ secrets.APPLE_CERTIFICATE != '' }}
+
     steps:
       - uses: actions/checkout@v7
 
@@ -35,25 +40,51 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build, sign, notarize and publish
+      - name: Build, sign and notarize
+        if: env.SIGNED == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # Signs the update artifacts so installed copies will accept them.
-          # Without these the build still succeeds; auto-update just won't work.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-
-          # Apple Developer ID signing and notarization. All five are required
-          # together; leave them unset for an unsigned build that users must
-          # right-click → Open to run.
+          # Apple Developer ID signing and notarization.
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          # One download that runs on both Apple Silicon and Intel. It costs
+          # every user the other architecture's bytes, which is the price of
+          # never making anyone choose the wrong file.
+          args: --target universal-apple-darwin
+          tagName: ${{ github.ref_name }}
+          releaseName: own-brew ${{ github.ref_name }}
+          releaseBody: |
+            See the changelog for what changed.
+
+            **macOS will refuse to open this on first launch** unless the
+            release was notarized — right-click the app and choose Open, then
+            confirm. That is Gatekeeper's behaviour for any app it has not
+            seen notarized, not a problem with the download.
+          releaseDraft: true
+          includeUpdaterJson: true
+
+      - name: Build unsigned
+        # No Developer ID certificate configured. The app still builds and
+        # still auto-updates; macOS will show the unidentified-developer
+        # prompt until a certificate is available.
+        if: env.SIGNED != 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Signs the update artifacts so installed copies will accept them.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           # One download that runs on both Apple Silicon and Intel. It costs
           # every user the other architecture's bytes, which is the price of

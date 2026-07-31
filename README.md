@@ -197,6 +197,12 @@ Everything is optional, and the build degrades honestly without it:
 | `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` | Unsigned build; users must right-click → Open |
 | `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` | Not notarized; same right-click → Open |
 
+The workflow branches on whether `APPLE_CERTIFICATE` is present and omits the
+Apple variables entirely when it is not. That indirection is necessary:
+referencing a secret that does not exist yields an *empty string* rather than
+leaving the variable unset, and Tauri reads a present-but-empty
+`APPLE_CERTIFICATE` as "sign this", then fails importing nothing.
+
 Notarizing needs a **Developer ID Application** certificate, which requires a
 paid Apple Developer account. A local "Mac Developer" certificate is not
 enough — Apple will not notarize with one.
