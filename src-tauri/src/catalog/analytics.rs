@@ -70,7 +70,13 @@ pub async fn build_errors(http: &reqwest::Client) -> HashMap<String, u64> {
 }
 
 async fn load(http: &reqwest::Client, url: &str) -> crate::Result<HashMap<String, u64>> {
-    let report: Report = http.get(url).send().await?.error_for_status()?.json().await?;
+    let report: Report = http
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
     Ok(report
         .items
         .iter()

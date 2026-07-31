@@ -189,7 +189,13 @@ mod tests {
 
     #[test]
     fn shell_metacharacters_are_rejected() {
-        for hostile in ["jq; rm -rf /", "jq&&whoami", "jq|tee", "$(whoami)", "jq`id`"] {
+        for hostile in [
+            "jq; rm -rf /",
+            "jq&&whoami",
+            "jq|tee",
+            "$(whoami)",
+            "jq`id`",
+        ] {
             assert!(
                 args(&request(Action::Install, Kind::Formula, &[hostile])).is_err(),
                 "{hostile} should be rejected"

@@ -181,8 +181,12 @@ mod tests {
     #[tokio::test]
     async fn stdout_and_stderr_are_distinguished() {
         let lines = collect("echo out; echo err 1>&2").await;
-        assert!(lines.iter().any(|l| l.origin == Origin::Stdout && l.text == "out"));
-        assert!(lines.iter().any(|l| l.origin == Origin::Stderr && l.text == "err"));
+        assert!(lines
+            .iter()
+            .any(|l| l.origin == Origin::Stdout && l.text == "out"));
+        assert!(lines
+            .iter()
+            .any(|l| l.origin == Origin::Stderr && l.text == "err"));
     }
 
     #[tokio::test]

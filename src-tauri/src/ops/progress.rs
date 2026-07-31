@@ -71,7 +71,9 @@ mod tests {
         );
         assert_eq!(
             interpret("==> Pouring jq--1.8.2.arm64_tahoe.bottle.tar.gz"),
-            Some(Signal::Phase("Pouring jq--1.8.2.arm64_tahoe.bottle.tar.gz".into()))
+            Some(Signal::Phase(
+                "Pouring jq--1.8.2.arm64_tahoe.bottle.tar.gz".into()
+            ))
         );
         assert_eq!(
             interpret("==> Caveats"),

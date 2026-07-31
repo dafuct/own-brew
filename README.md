@@ -1,5 +1,7 @@
 # own-brew
 
+[![CI](https://github.com/OWNER/own-brew/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/own-brew/actions/workflows/ci.yml)
+
 **The Homebrew GUI that can undo an upgrade.**
 
 Every Homebrew GUI answers *what can I install?* own-brew also answers the
@@ -152,6 +154,20 @@ UI says so on the page rather than showing a reassuring tick.
 own-brew never writes to the Cellar itself. It drives the real `brew` CLI, so
 its view cannot drift from Homebrew's.
 
+## Install
+
+Download the `.dmg` for your architecture from
+[Releases](https://github.com/OWNER/own-brew/releases), drag own-brew to
+Applications, and open it.
+
+**If macOS refuses to open it**, the release was not notarized. Right-click the
+app and choose *Open*, then confirm. Gatekeeper does this for any app it has
+not seen notarized; it is not a sign the download is damaged. See
+[Releasing](#releasing) for what notarizing requires.
+
+Homebrew must already be installed — own-brew drives the real `brew` command
+and will say so on first launch if it cannot find it.
+
 ## Develop
 
 ```bash
@@ -170,10 +186,36 @@ installation on the machine, because the failure mode that matters most is
 Homebrew changing its output — something a mocked test cannot catch. They skip
 themselves when Homebrew is absent.
 
+## Releasing
+
+Tagging `v*` builds, signs and drafts a GitHub release for both architectures.
+Everything is optional, and the build degrades honestly without it:
+
+| Secret | Without it |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | The app builds, but installed copies will reject the update as unsigned |
+| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` | Unsigned build; users must right-click → Open |
+| `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` | Not notarized; same right-click → Open |
+
+Notarizing needs a **Developer ID Application** certificate, which requires a
+paid Apple Developer account. A local "Mac Developer" certificate is not
+enough — Apple will not notarize with one.
+
+The updater keypair is generated once with `pnpm tauri signer generate`; the
+public half is committed in `tauri.conf.json` and the private half belongs only
+in `TAURI_SIGNING_PRIVATE_KEY`. Lose it and existing installs can never be
+updated again.
+
+The app runs under the hardened runtime, which notarization requires.
+`src-tauri/entitlements.plist` grants exactly one exception, with the reason
+written next to it.
+
 ## Requirements
 
 macOS with Homebrew. Linux support is planned and mostly free with Tauri —
-Homebrew on Linux is first class, and every SwiftUI competitor is macOS-only.
+Homebrew on Linux is first class, and every SwiftUI competitor is macOS-only —
+but it has not been built or tested yet, so treat it as intent rather than a
+feature.
 
 ## License
 

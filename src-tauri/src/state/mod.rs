@@ -5,10 +5,10 @@
 
 use crate::brew::Brew;
 use crate::error::Result;
-use crate::rollback::cellar;
 use crate::model::detail::{Cask, Formula, Info};
 use crate::model::entry::Kind;
 use crate::model::{Outdated, Service};
+use crate::rollback::cellar;
 use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize)]
@@ -187,13 +187,17 @@ mod tests {
         for package in packages.iter().filter(|p| !p.rollback_targets.is_empty()) {
             for version in &package.rollback_targets {
                 assert!(
-                    cellar::rack(brew.prefix(), &package.id).join(version).is_dir(),
+                    cellar::rack(brew.prefix(), &package.id)
+                        .join(version)
+                        .is_dir(),
                     "{} {version} was offered as restorable but is not on disk",
                     package.id
                 );
             }
             assert!(
-                !package.rollback_targets.contains(package.version.as_ref().unwrap()),
+                !package
+                    .rollback_targets
+                    .contains(package.version.as_ref().unwrap()),
                 "the version in use must not be offered as a rollback target"
             );
         }

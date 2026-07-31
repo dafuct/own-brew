@@ -44,7 +44,9 @@ async fn loads_the_whole_catalog() {
 
 #[tokio::test]
 async fn finds_well_known_packages_by_name() {
-    let Some(catalog) = catalog().await else { return };
+    let Some(catalog) = catalog().await else {
+        return;
+    };
 
     for (kind, id) in [(Kind::Formula, "git"), (Kind::Formula, "wget")] {
         let page = catalog.search(&Query {
@@ -62,7 +64,9 @@ async fn finds_well_known_packages_by_name() {
 
 #[tokio::test]
 async fn searching_by_description_finds_packages_whose_name_does_not_match() {
-    let Some(catalog) = catalog().await else { return };
+    let Some(catalog) = catalog().await else {
+        return;
+    };
 
     let page = catalog.search(&Query {
         text: "json processor".to_owned(),
@@ -80,7 +84,9 @@ async fn searching_by_description_finds_packages_whose_name_does_not_match() {
 
 #[tokio::test]
 async fn paging_covers_every_result_exactly_once() {
-    let Some(catalog) = catalog().await else { return };
+    let Some(catalog) = catalog().await else {
+        return;
+    };
 
     let query = |offset| Query {
         kind: Some(Kind::Cask),
@@ -123,7 +129,10 @@ async fn reads_the_installed_package_list() {
     );
     // Anything installed must report the version that is actually in use.
     assert!(
-        packages.iter().filter(|p| p.kind == Kind::Formula).all(|p| p.version.is_some()),
+        packages
+            .iter()
+            .filter(|p| p.kind == Kind::Formula)
+            .all(|p| p.version.is_some()),
         "installed formulae should report a version"
     );
 }
@@ -132,7 +141,9 @@ async fn reads_the_installed_package_list() {
 async fn outdated_agrees_with_the_installed_list() {
     let Some(brew) = brew() else { return };
 
-    let outdated = state::outdated(&brew).await.expect("`brew outdated` parses");
+    let outdated = state::outdated(&brew)
+        .await
+        .expect("`brew outdated` parses");
     let installed = state::installed(&brew).await.expect("`brew info` parses");
 
     // Everything reported as outdated must actually be installed.
@@ -170,7 +181,12 @@ async fn detail_for_an_unknown_package_fails_cleanly() {
     let Some(brew) = brew() else { return };
 
     let result: own_brew_lib::Result<own_brew_lib::model::detail::Info> = brew
-        .json(&["info", "--json=v2", "--formula", "surely-no-such-formula-42"])
+        .json(&[
+            "info",
+            "--json=v2",
+            "--formula",
+            "surely-no-such-formula-42",
+        ])
         .await;
 
     let err = result.expect_err("unknown formula must not succeed");
@@ -231,22 +247,37 @@ async fn impact_assessment_over_real_pending_updates() {
     let urgencies: Vec<_> = assessments.iter().map(|a| a.urgency).collect();
     let mut sorted = urgencies.clone();
     sorted.sort_by(|a, b| b.cmp(a));
-    assert_eq!(urgencies, sorted, "assessments must lead with the urgent ones");
+    assert_eq!(
+        urgencies, sorted,
+        "assessments must lead with the urgent ones"
+    );
 }
 
 /// The disk footprint, and the claim that reclaiming costs you your undo.
 #[tokio::test]
 async fn disk_footprint_matches_the_rollback_targets() {
     let Some(brew) = brew() else { return };
-    let footprint = own_brew_lib::disk::footprint(&brew).await.expect("disk scan");
+    let footprint = own_brew_lib::disk::footprint(&brew)
+        .await
+        .expect("disk scan");
 
     // Every byte offered as reclaimable belongs to a keg that really exists,
     // and every such keg is one the rollback engine would offer to restore.
     for keg in &footprint.superseded {
-        let path = own_brew_lib::rollback::cellar::rack(brew.prefix(), &keg.formula)
-            .join(&keg.version);
-        assert!(path.is_dir(), "{} {} is not on disk", keg.formula, keg.version);
-        assert!(keg.bytes > 0, "{} {} measured as empty", keg.formula, keg.version);
+        let path =
+            own_brew_lib::rollback::cellar::rack(brew.prefix(), &keg.formula).join(&keg.version);
+        assert!(
+            path.is_dir(),
+            "{} {} is not on disk",
+            keg.formula,
+            keg.version
+        );
+        assert!(
+            keg.bytes > 0,
+            "{} {} measured as empty",
+            keg.formula,
+            keg.version
+        );
     }
 
     assert!(footprint.superseded_bytes <= footprint.cellar_bytes);
@@ -303,9 +334,11 @@ async fn recovers_a_version_that_is_not_on_disk() {
 
     // Asking for a version that never existed must fail cleanly rather than
     // materialising something wrong.
-    let bogus =
-        own_brew_lib::rollback::recovery_plan(&brew, &http, "jq", "999.999.999").await;
-    assert!(bogus.is_err(), "a version that never shipped must not resolve");
+    let bogus = own_brew_lib::rollback::recovery_plan(&brew, &http, "jq", "999.999.999").await;
+    assert!(
+        bogus.is_err(),
+        "a version that never shipped must not resolve"
+    );
 
     own_brew_lib::rollback::tap::discard(&brew, "jq", "1.8.1").expect("cleanup");
 }

@@ -301,8 +301,9 @@ impl History {
 
     pub fn policies(&self) -> Result<Vec<Policy>> {
         let conn = self.connection();
-        let mut statement =
-            conn.prepare("SELECT kind, package, rule, bake_days, note FROM policies ORDER BY package")?;
+        let mut statement = conn.prepare(
+            "SELECT kind, package, rule, bake_days, note FROM policies ORDER BY package",
+        )?;
         let rows = statement.query_map([], |row| {
             let kind = match row.get::<_, String>(0)?.as_str() {
                 "cask" => Kind::Cask,
@@ -345,13 +346,7 @@ mod tests {
     }
 
     fn decide_with(policy: Policy, outdated: Outdated, seen: Option<i64>) -> Decision {
-        evaluate(
-            NOW,
-            &outdated,
-            |_, _| policy.clone(),
-            |_, _, _| seen,
-        )
-        .remove(0)
+        evaluate(NOW, &outdated, |_, _| policy.clone(), |_, _, _| seen).remove(0)
     }
 
     #[test]
@@ -485,7 +480,11 @@ mod tests {
             only(outdated_formula("jq", "1.8.1", "1.8.2", false)),
             Some(NOW - 6 * DAY),
         );
-        assert!(decision.reason.contains("ready in 1 day"), "got {:?}", decision.reason);
+        assert!(
+            decision.reason.contains("ready in 1 day"),
+            "got {:?}",
+            decision.reason
+        );
     }
 
     #[test]
@@ -553,7 +552,10 @@ mod tests {
     #[test]
     fn an_unset_package_defaults_to_auto() {
         let history = store();
-        assert_eq!(history.policy(Kind::Formula, "anything").unwrap().rule, Rule::Auto);
+        assert_eq!(
+            history.policy(Kind::Formula, "anything").unwrap().rule,
+            Rule::Auto
+        );
     }
 
     #[test]
@@ -567,7 +569,10 @@ mod tests {
         history.set_policy(&policy).unwrap();
 
         assert_eq!(history.policies().unwrap().len(), 1);
-        assert_eq!(history.policy(Kind::Formula, "jq").unwrap().rule, Rule::MinorOnly);
+        assert_eq!(
+            history.policy(Kind::Formula, "jq").unwrap().rule,
+            Rule::MinorOnly
+        );
     }
 
     #[test]
@@ -594,7 +599,13 @@ mod tests {
         history.set_policy(&formula).unwrap();
         history.set_policy(&cask).unwrap();
 
-        assert_eq!(history.policy(Kind::Formula, "docker").unwrap().rule, Rule::Never);
-        assert_eq!(history.policy(Kind::Cask, "docker").unwrap().rule, Rule::MinorOnly);
+        assert_eq!(
+            history.policy(Kind::Formula, "docker").unwrap().rule,
+            Rule::Never
+        );
+        assert_eq!(
+            history.policy(Kind::Cask, "docker").unwrap().rule,
+            Rule::MinorOnly
+        );
     }
 }

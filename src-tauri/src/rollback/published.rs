@@ -82,9 +82,7 @@ pub fn older_than(tags: &[String], current: &str) -> Vec<String> {
         .filter(|version| seen.insert(version.clone()))
         .collect();
 
-    older.sort_by(|a, b| {
-        crate::history::diff::compare_versions(b, a).unwrap_or_else(|| b.cmp(a))
-    });
+    older.sort_by(|a, b| crate::history::diff::compare_versions(b, a).unwrap_or_else(|| b.cmp(a)));
     older
 }
 

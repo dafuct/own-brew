@@ -1106,3 +1106,25 @@ input {
 .reasons li::before {
   content: "· ";
 }
+
+/* ---------------------------------------------------------- app update --- */
+
+.appupdate {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--accent-line);
+  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
+}
+
+.appupdate__text {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.appupdate__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

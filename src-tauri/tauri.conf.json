@@ -28,13 +28,33 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+      "icons/icon.png"
+    ],
+    "copyright": "MIT licensed. \u00a9 own-brew contributors.",
+    "category": "DeveloperTool",
+    "shortDescription": "The Homebrew GUI that can undo an upgrade",
+    "longDescription": "own-brew manages Homebrew packages and can put a broken upgrade back: instantly from a version still on disk, or by recovering any version Homebrew ever published.",
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "entitlements": "entitlements.plist"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/OWNER/own-brew/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU2REUzMjI2NzI4N0E2MjQKUldRa3BvZHlKakxlNXE2aVRidnN3ZGk0SnZFRHYyak02SkNnOTUzN29KYms3RWtDWjRTT045WHAK"
+    }
   }
 }

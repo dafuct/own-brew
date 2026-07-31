@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    own-brew runs under the hardened runtime, which notarization requires.
+
+    Homebrew is a Ruby program that shells out to compilers, curl and git, and
+    sets DYLD_* variables while doing so. The hardened runtime strips those
+    from child processes unless this entitlement is present, which makes some
+    installs fail in ways that are hard to attribute.
+
+    Nothing else is requested: own-brew does not load third-party libraries
+    into its own process, so library validation stays on.
+  -->
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+</dict>
+</plist>

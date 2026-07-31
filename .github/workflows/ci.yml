@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # macOS because the test suite exercises the real `brew` CLI wherever it
+    # can. The suite degrades to a no-op when Homebrew is absent, so it still
+    # passes elsewhere — but running it here is the point.
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Clippy
+        working-directory: src-tauri
+        # The project keeps clippy at zero warnings, so treat any as failure.
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Tests
+        working-directory: src-tauri
+        # Includes the live-Homebrew integration tests: the runner has brew
+        # preinstalled, so they exercise the real CLI rather than skipping.
+        run: cargo test --all-targets

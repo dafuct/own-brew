@@ -313,7 +313,9 @@ pub async fn recovery_plan(
     // Uninstalling would break anything that links against this package, and
     // Homebrew would refuse anyway — say so before starting rather than
     // failing halfway.
-    let dependents = crate::impact::dependents(brew, name).await.unwrap_or_default();
+    let dependents = crate::impact::dependents(brew, name)
+        .await
+        .unwrap_or_default();
     if !dependents.is_empty() {
         let _ = tap::discard(brew, name, version);
         return Err(Error::Catalog(format!(
@@ -411,9 +413,18 @@ mod tests {
 
     #[test]
     fn trims_the_platform_tag_off_a_cached_bottle_name() {
-        assert_eq!(trim_version("3.6.3.arm64_tahoe.bottle.1.tar.gz", "3"), "3.6.3");
-        assert_eq!(trim_version("1.8.2.arm64_sonoma.bottle.tar.gz", "1"), "1.8.2");
-        assert_eq!(trim_version("2026-07-16.all.bottle.tar.gz", "2026-07-16"), "2026-07-16");
+        assert_eq!(
+            trim_version("3.6.3.arm64_tahoe.bottle.1.tar.gz", "3"),
+            "3.6.3"
+        );
+        assert_eq!(
+            trim_version("1.8.2.arm64_sonoma.bottle.tar.gz", "1"),
+            "1.8.2"
+        );
+        assert_eq!(
+            trim_version("2026-07-16.all.bottle.tar.gz", "2026-07-16"),
+            "2026-07-16"
+        );
     }
 
     #[test]
@@ -473,9 +484,16 @@ mod tests {
         let versions = cellar::kegs(dir.path(), "demo");
         assert_eq!(versions, vec!["1.0.0", "2.0.0"]);
 
-        let found =
-            candidates(&brew, None, None, Kind::Formula, "definitely-not-installed", None, &[])
-                .await;
+        let found = candidates(
+            &brew,
+            None,
+            None,
+            Kind::Formula,
+            "definitely-not-installed",
+            None,
+            &[],
+        )
+        .await;
         assert!(found.is_empty());
     }
 
@@ -485,8 +503,16 @@ mod tests {
         // that is an upgrade waiting to happen, not somewhere to go back to.
         let Ok(brew) = Brew::discover() else { return };
         // No http client: this checks the local sources only.
-        let found = candidates(&brew, None, None, Kind::Formula, "openssl@3", Some("3.6.2"), &[])
-            .await;
+        let found = candidates(
+            &brew,
+            None,
+            None,
+            Kind::Formula,
+            "openssl@3",
+            Some("3.6.2"),
+            &[],
+        )
+        .await;
         for candidate in &found {
             if candidate.source == Source::DownloadCache || candidate.source == Source::HistoryOnly
             {
@@ -540,11 +566,21 @@ mod tests {
         let Ok(brew) = Brew::discover() else { return };
         for (name, versions) in cellar::inventory(brew.prefix()).into_iter().take(30) {
             let current = versions.last().cloned();
-            let found =
-                candidates(&brew, None, None, Kind::Formula, &name, current.as_deref(), &[]).await;
+            let found = candidates(
+                &brew,
+                None,
+                None,
+                Kind::Formula,
+                &name,
+                current.as_deref(),
+                &[],
+            )
+            .await;
             for candidate in found.iter().filter(|c| c.source == Source::LocalKeg) {
                 assert!(
-                    cellar::rack(brew.prefix(), &name).join(&candidate.version).is_dir(),
+                    cellar::rack(brew.prefix(), &name)
+                        .join(&candidate.version)
+                        .is_dir(),
                     "{name} {} was offered but is not on disk",
                     candidate.version
                 );

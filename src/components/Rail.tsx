@@ -1,4 +1,5 @@
 import type { CatalogStats } from "../api/types";
+import { AppUpdate } from "./AppUpdate";
 
 export type View =
   | "discover"
@@ -83,6 +84,7 @@ export function Rail({
         <button onClick={onToggleTheme} style={{ marginTop: 6 }}>
           {theme === "dark" ? "light theme" : "dark theme"}
         </button>
+        <AppUpdate />
       </div>
     </nav>
   );

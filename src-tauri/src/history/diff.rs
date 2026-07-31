@@ -100,7 +100,11 @@ pub fn diff(before: &[InstalledPackage], after: &[InstalledPackage]) -> Vec<Chan
         }
     }
 
-    changes.sort_by(|a, b| a.package.cmp(&b.package).then(a.kind.as_str().cmp(b.kind.as_str())));
+    changes.sort_by(|a, b| {
+        a.package
+            .cmp(&b.package)
+            .then(a.kind.as_str().cmp(b.kind.as_str()))
+    });
     changes
 }
 
@@ -182,7 +186,10 @@ mod tests {
     #[test]
     fn detects_installs_and_removals() {
         let changes = diff(&[pkg("old", Some("1"))], &[pkg("new", Some("2"))]);
-        let by_name: HashMap<_, _> = changes.iter().map(|c| (c.package.as_str(), c.change)).collect();
+        let by_name: HashMap<_, _> = changes
+            .iter()
+            .map(|c| (c.package.as_str(), c.change))
+            .collect();
         assert_eq!(by_name["new"], ChangeKind::Installed);
         assert_eq!(by_name["old"], ChangeKind::Removed);
     }
@@ -223,7 +230,10 @@ mod tests {
         assert_eq!(compare_versions("1.8.1", "1.8.2"), Some(Ordering::Less));
         assert_eq!(compare_versions("1.10.0", "1.9.0"), Some(Ordering::Greater));
         // Revision suffixes participate in the comparison.
-        assert_eq!(compare_versions("1.16.2_1", "1.16.2_2"), Some(Ordering::Less));
+        assert_eq!(
+            compare_versions("1.16.2_1", "1.16.2_2"),
+            Some(Ordering::Less)
+        );
         // Date-style versions, as used by ca-certificates.
         assert_eq!(
             compare_versions("2026-05-14", "2026-07-16"),

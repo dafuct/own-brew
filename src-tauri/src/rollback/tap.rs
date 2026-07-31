@@ -145,9 +145,4 @@ mod tests {
         let directory = ensure(&brew).await.expect("tap creation");
         assert!(directory.join("Formula").is_dir());
     }
-
-
-
-
-
 }

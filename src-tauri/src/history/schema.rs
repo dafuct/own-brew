@@ -88,7 +88,8 @@ mod tests {
     use super::*;
 
     fn version(conn: &Connection) -> i64 {
-        conn.query_row("PRAGMA user_version", [], |row| row.get(0)).unwrap()
+        conn.query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap()
     }
 
     #[test]

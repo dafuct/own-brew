@@ -318,7 +318,12 @@ mod tests {
     fn a_failed_operation_keeps_its_error() {
         let history = history();
         let id = history
-            .begin(Action::Install, Kind::Cask, &["x".into()], "brew install --cask x")
+            .begin(
+                Action::Install,
+                Kind::Cask,
+                &["x".into()],
+                "brew install --cask x",
+            )
             .unwrap();
         history.finish(id, false, false, Some("boom"), &[]).unwrap();
 
@@ -347,7 +352,12 @@ mod tests {
 
         for (before, after) in [("1.0", "1.1"), ("1.1", "1.2"), ("1.2", "1.3")] {
             let id = history
-                .begin(Action::Upgrade, Kind::Formula, &["jq".into()], "brew upgrade jq")
+                .begin(
+                    Action::Upgrade,
+                    Kind::Formula,
+                    &["jq".into()],
+                    "brew upgrade jq",
+                )
                 .unwrap();
             let changes = diff::diff(&[pkg("jq", before)], &[pkg("jq", after)]);
             history.finish(id, true, false, None, &changes).unwrap();
@@ -355,29 +365,47 @@ mod tests {
 
         let versions = history.known_versions(Kind::Formula, "jq").unwrap();
         let names: Vec<_> = versions.iter().map(|v| v.version.as_str()).collect();
-        assert_eq!(names, ["1.2", "1.1", "1.0"], "newest previous version first");
+        assert_eq!(
+            names,
+            ["1.2", "1.1", "1.0"],
+            "newest previous version first"
+        );
     }
 
     #[test]
     fn failed_operations_do_not_contribute_rollback_targets() {
         let history = history();
         let id = history
-            .begin(Action::Upgrade, Kind::Formula, &["jq".into()], "brew upgrade jq")
+            .begin(
+                Action::Upgrade,
+                Kind::Formula,
+                &["jq".into()],
+                "brew upgrade jq",
+            )
             .unwrap();
         let changes = diff::diff(&[pkg("jq", "1.0")], &[pkg("jq", "1.1")]);
-        history.finish(id, false, false, Some("failed"), &changes).unwrap();
+        history
+            .finish(id, false, false, Some("failed"), &changes)
+            .unwrap();
 
-        assert!(history.known_versions(Kind::Formula, "jq").unwrap().is_empty());
+        assert!(history
+            .known_versions(Kind::Formula, "jq")
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
     fn version_sightings_keep_the_first_timestamp() {
         let history = history();
-        history.observe_version(Kind::Formula, "jq", "1.8.2").unwrap();
+        history
+            .observe_version(Kind::Formula, "jq", "1.8.2")
+            .unwrap();
         let first = history.first_seen(Kind::Formula, "jq", "1.8.2").unwrap();
         assert!(first.is_some());
 
-        history.observe_version(Kind::Formula, "jq", "1.8.2").unwrap();
+        history
+            .observe_version(Kind::Formula, "jq", "1.8.2")
+            .unwrap();
         assert_eq!(
             history.first_seen(Kind::Formula, "jq", "1.8.2").unwrap(),
             first,
@@ -394,13 +422,19 @@ mod tests {
     fn deleting_an_operation_removes_its_changes() {
         let history = history();
         let id = history
-            .begin(Action::Upgrade, Kind::Formula, &["jq".into()], "brew upgrade jq")
+            .begin(
+                Action::Upgrade,
+                Kind::Formula,
+                &["jq".into()],
+                "brew upgrade jq",
+            )
             .unwrap();
         let changes = diff::diff(&[pkg("jq", "1.0")], &[pkg("jq", "1.1")]);
         history.finish(id, true, false, None, &changes).unwrap();
 
         let conn = history.connection();
-        conn.execute("DELETE FROM operations WHERE id = ?1", [id]).unwrap();
+        conn.execute("DELETE FROM operations WHERE id = ?1", [id])
+            .unwrap();
         let orphans: i64 = conn
             .query_row("SELECT count(*) FROM changes", [], |row| row.get(0))
             .unwrap();

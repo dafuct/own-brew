@@ -150,12 +150,8 @@ impl Report {
                 .then_with(|| a.formula.cmp(&b.formula))
         });
 
-        let count = |severity: Severity| {
-            packages
-                .iter()
-                .map(|p| p.count_of(severity))
-                .sum::<usize>()
-        };
+        let count =
+            |severity: Severity| packages.iter().map(|p| p.count_of(severity)).sum::<usize>();
 
         Self {
             critical: count(Severity::Critical),

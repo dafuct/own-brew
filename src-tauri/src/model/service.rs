@@ -62,6 +62,9 @@ mod tests {
             exit_code: Some(1),
         };
         assert!(!crashed.is_running());
-        assert!(crashed.has_failed(), "non-zero exit means it needs attention");
+        assert!(
+            crashed.has_failed(),
+            "non-zero exit means it needs attention"
+        );
     }
 }

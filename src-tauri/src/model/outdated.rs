@@ -53,7 +53,10 @@ mod tests {
     #[test]
     fn parses_real_outdated_output() {
         let outdated: Outdated = serde_json::from_str(OUTDATED).expect("real output parses");
-        assert!(outdated.total() > 0, "fixture should list outdated packages");
+        assert!(
+            outdated.total() > 0,
+            "fixture should list outdated packages"
+        );
 
         let ada = outdated
             .formulae

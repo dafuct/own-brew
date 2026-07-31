@@ -103,6 +103,10 @@ mod tests {
         let mut unique = entries.clone();
         unique.sort();
         unique.dedup();
-        assert_eq!(entries.len(), unique.len(), "PATH should not repeat entries");
+        assert_eq!(
+            entries.len(),
+            unique.len(),
+            "PATH should not repeat entries"
+        );
     }
 }

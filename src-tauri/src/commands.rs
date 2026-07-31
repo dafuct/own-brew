@@ -5,17 +5,17 @@
 
 use crate::app::{App, Environment};
 use crate::catalog::{Page, Query, Stats};
+use crate::disk;
 use crate::error::Result;
+use crate::history::{diff, Change, Operation};
+use crate::impact;
+use crate::model::detail::Formula;
 use crate::model::entry::Kind;
 use crate::model::{Detail, Outdated, Service};
-use crate::history::{diff, Change, Operation};
-use crate::model::detail::Formula;
 use crate::ops::{Action, Event, Request};
 use crate::policy::{Decision, Policy};
 use crate::rollback::{self, Candidate};
 use crate::security;
-use crate::impact;
-use crate::disk;
 use crate::state::{self, InstalledPackage, Summary};
 use serde::Serialize;
 use tauri::ipc::Channel;
@@ -100,11 +100,7 @@ pub async fn services(app: State<'_, App>) -> Result<Vec<Service>> {
 /// records what actually changed — including dependencies the user never
 /// named. Snapshots are skipped for operations that cannot move a version.
 #[tauri::command]
-pub async fn op_run(
-    app: State<'_, App>,
-    request: Request,
-    channel: Channel<Event>,
-) -> Result<u64> {
+pub async fn op_run(app: State<'_, App>, request: Request, channel: Channel<Event>) -> Result<u64> {
     let brew = app.brew()?;
     let changes_versions = matches!(
         request.action,
@@ -121,10 +117,10 @@ pub async fn op_run(
         .map(|args| format!("brew {}", args.join(" ")))
         .unwrap_or_default();
 
-    let record = app
-        .history()
-        .ok()
-        .and_then(|h| h.begin(request.action, request.kind, &request.targets, &command).ok());
+    let record = app.history().ok().and_then(|h| {
+        h.begin(request.action, request.kind, &request.targets, &command)
+            .ok()
+    });
 
     let outcome = app.runner.run(brew, request, channel).await;
 
@@ -172,7 +168,9 @@ pub async fn rollback_candidates(
             let formula: Option<&Formula> = info.formulae.first();
             (
                 formula.and_then(|f| f.active_version().map(str::to_owned)),
-                formula.map(|f| f.versioned_formulae.clone()).unwrap_or_default(),
+                formula
+                    .map(|f| f.versioned_formulae.clone())
+                    .unwrap_or_default(),
             )
         }
         Kind::Cask => (None, Vec::new()),
@@ -192,11 +190,7 @@ pub async fn rollback_candidates(
 
 /// Switch back to a version whose keg is still on disk.
 #[tauri::command]
-pub async fn rollback_restore(
-    app: State<'_, App>,
-    id: String,
-    version: String,
-) -> Result<String> {
+pub async fn rollback_restore(app: State<'_, App>, id: String, version: String) -> Result<String> {
     let brew = app.brew()?;
     let before = state::installed(brew).await.ok();
 

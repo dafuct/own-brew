@@ -29,3 +29,8 @@ src-tauri/gen
 
 # macOS bundles
 *.app
+
+# Updater signing keys — never commit these
+*.key
+*.key.pub
+tools/icon-source.png

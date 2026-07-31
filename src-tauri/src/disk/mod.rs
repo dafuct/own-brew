@@ -202,7 +202,10 @@ mod tests {
             parse_freed("This operation would free approximately 1.2GB of disk space."),
             Some(1_200_000_000)
         );
-        assert_eq!(parse_freed("Would remove: /some/path (12 files, 5.3MB)"), None);
+        assert_eq!(
+            parse_freed("Would remove: /some/path (12 files, 5.3MB)"),
+            None
+        );
         assert_eq!(parse_freed("nothing to report"), None);
     }
 

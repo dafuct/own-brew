@@ -149,7 +149,10 @@ mod tests {
     /// changing the envelope shape underneath us.
     #[tokio::test]
     async fn reads_the_real_homebrew_cache_when_present() {
-        let Some(cache) = crate::brew::Brew::discover().ok().and_then(|b| b.cache_dir()) else {
+        let Some(cache) = crate::brew::Brew::discover()
+            .ok()
+            .and_then(|b| b.cache_dir())
+        else {
             return;
         };
         let loader = Loader {

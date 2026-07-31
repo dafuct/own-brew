@@ -30,9 +30,8 @@ pub fn kegs(prefix: &Path, name: &str) -> Vec<String> {
         .filter(|name| !name.starts_with('.'))
         .collect();
 
-    versions.sort_by(|a, b| {
-        crate::history::diff::compare_versions(a, b).unwrap_or_else(|| a.cmp(b))
-    });
+    versions
+        .sort_by(|a, b| crate::history::diff::compare_versions(a, b).unwrap_or_else(|| a.cmp(b)));
     versions
 }
 
@@ -161,10 +160,8 @@ pub mod tempdir {
     impl Dir {
         pub fn new() -> Self {
             let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "own-brew-test-{}-{unique}",
-                std::process::id()
-            ));
+            let path =
+                std::env::temp_dir().join(format!("own-brew-test-{}-{unique}", std::process::id()));
             std::fs::create_dir_all(&path).expect("scratch directory");
             Self(path)
         }

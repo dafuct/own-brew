@@ -113,7 +113,9 @@ pub fn assess(input: Inputs<'_>) -> Assessment {
         }
         VersionJump::Unknown => {
             risk = Level::Moderate;
-            reasons.push("Versions cannot be compared, so the size of the change is unclear".to_owned());
+            reasons.push(
+                "Versions cannot be compared, so the size of the change is unclear".to_owned(),
+            );
         }
     }
 
@@ -147,7 +149,8 @@ pub fn assess(input: Inputs<'_>) -> Assessment {
 
     if input.undoable {
         // Reduces the consequence of being wrong, not the chance.
-        reasons.push("The current version stays on disk, so this can be undone instantly".to_owned());
+        reasons
+            .push("The current version stays on disk, so this can be undone instantly".to_owned());
     }
 
     // ---- urgency ----------------------------------------------------------
@@ -296,10 +299,7 @@ pub async fn build_errors(http: &reqwest::Client) -> HashMap<String, u64> {
 /// the installed graph, the vulnerability scan and the build-error feed run
 /// concurrently, and the reverse-dependency map is inverted rather than asked
 /// per package.
-pub async fn assess_outdated(
-    brew: &Brew,
-    http: &reqwest::Client,
-) -> Result<Vec<Assessment>> {
+pub async fn assess_outdated(brew: &Brew, http: &reqwest::Client) -> Result<Vec<Assessment>> {
     let (outdated, info, vulns) = tokio::join!(
         crate::state::outdated(brew),
         brew.json::<crate::model::detail::Info>(&["info", "--json=v2", "--installed"]),
@@ -376,7 +376,10 @@ mod tests {
         assert_eq!(classify(Some("1.2.3"), Some("1.3.0")), VersionJump::Minor);
         assert_eq!(classify(Some("1.2.3"), Some("1.2.4")), VersionJump::Patch);
         // A Homebrew rebuild of the same upstream release.
-        assert_eq!(classify(Some("1.16.2_1"), Some("1.16.2_2")), VersionJump::Revision);
+        assert_eq!(
+            classify(Some("1.16.2_1"), Some("1.16.2_2")),
+            VersionJump::Revision
+        );
         assert_eq!(classify(Some("HEAD"), Some("latest")), VersionJump::Unknown);
         assert_eq!(classify(None, Some("1.0")), VersionJump::Unknown);
     }
@@ -401,7 +404,10 @@ mod tests {
     fn a_major_change_is_high_risk() {
         let assessment = assess(base("1.2.3", "2.0.0"));
         assert_eq!(assessment.risk, Level::High);
-        assert!(assessment.reasons.iter().any(|r| r.contains("Major version")));
+        assert!(assessment
+            .reasons
+            .iter()
+            .any(|r| r.contains("Major version")));
     }
 
     #[test]
@@ -409,8 +415,15 @@ mod tests {
         let mut input = base("1.2.3", "1.2.4");
         input.dependents = names(24);
         let assessment = assess(input);
-        assert_eq!(assessment.risk, Level::High, "a patch release can still be risky");
-        assert!(assessment.reasons.iter().any(|r| r.contains("24 installed packages")));
+        assert_eq!(
+            assessment.risk,
+            Level::High,
+            "a patch release can still be risky"
+        );
+        assert!(assessment
+            .reasons
+            .iter()
+            .any(|r| r.contains("24 installed packages")));
     }
 
     #[test]
@@ -474,7 +487,10 @@ mod tests {
         let mut input = base("1.2.3", "1.2.4");
         input.dependents = names(1);
         let assessment = assess(input);
-        assert!(assessment.reasons.iter().any(|r| r == "1 installed package depends on this"));
+        assert!(assessment
+            .reasons
+            .iter()
+            .any(|r| r == "1 installed package depends on this"));
         assert_eq!(assessment.risk, Level::Low);
     }
 
@@ -485,7 +501,10 @@ mod tests {
         input.worst_severity = Some(Severity::Medium);
         let assessment = assess(input);
         assert_eq!(assessment.urgency, Level::Moderate);
-        assert!(assessment.reasons.iter().any(|r| r.contains("1 known vulnerability")));
+        assert!(assessment
+            .reasons
+            .iter()
+            .any(|r| r.contains("1 known vulnerability")));
     }
 
     #[test]
@@ -502,8 +521,15 @@ mod tests {
         let mut input = base("1.2.3", "2.0.0");
         input.undoable = true;
         let assessment = assess(input);
-        assert_eq!(assessment.risk, Level::High, "being undoable does not make it safe");
-        assert!(assessment.reasons.iter().any(|r| r.contains("undone instantly")));
+        assert_eq!(
+            assessment.risk,
+            Level::High,
+            "being undoable does not make it safe"
+        );
+        assert!(assessment
+            .reasons
+            .iter()
+            .any(|r| r.contains("undone instantly")));
     }
 
     #[test]
