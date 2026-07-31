@@ -177,6 +177,10 @@ input {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Grid and flex items default to min-height:auto, which refuses to shrink
+     below the content's intrinsic height. The virtualised list's spacer is
+     ~722,000px tall, so without this the column grows to fit it. */
+  min-height: 0;
   height: 100%;
 }
 
@@ -261,6 +265,13 @@ input {
 
 .scroller {
   flex: 1;
+  /* Load-bearing. Without it this flex item stretches to its content height
+     (~722,000px for the full catalogue), so nothing ever overflows and the
+     list cannot scroll — and worse, @tanstack/react-virtual measures the
+     scroll element's offsetHeight as the viewport, concludes every row is
+     visible, and renders all 15,708 of them. That cost a gigabyte of webview
+     memory and made the whole window sluggish. */
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -453,6 +464,9 @@ input {
 
 .detail__body {
   flex: 1;
+  /* Same reason as .scroller — a long caveats block would otherwise push the
+     panel's height past the window instead of scrolling inside it. */
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-5);
 }

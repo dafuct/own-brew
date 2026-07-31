@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { useMemo } from "react";
 import type { Assessment, Outdated, OpRequest, Service } from "../api/types";
 import type { Selection } from "./CatalogView";
 import { Tag } from "./Tags";
 
 export function UpdatesList({
   data,
+  assessments,
   onSelect,
   onRun,
   busy,
 }: {
   data: Outdated | null;
+  /** Owned by App: computing these costs a vulnerability scan plus two brew
+   *  calls, which must not repeat on every tab switch. */
+  assessments: Assessment[] | null;
   onSelect: (selection: Selection) => void;
   onRun: (request: OpRequest) => void;
   busy: boolean;
@@ -19,16 +22,10 @@ export function UpdatesList({
   const total = upgradableFormulae.length + (data?.casks.length ?? 0);
   const pinned = data?.formulae.filter((f) => f.pinned) ?? [];
 
-  // Risk and urgency for every pending update. Costs one round trip for the
-  // whole list, not one per package.
-  const [impact, setImpact] = useState<Map<string, Assessment>>(new Map());
-  useEffect(() => {
-    if (!data) return;
-    api
-      .impactAll()
-      .then((all) => setImpact(new Map(all.map((a) => [a.package, a]))))
-      .catch(() => undefined);
-  }, [data]);
+  const impact = useMemo(
+    () => new Map((assessments ?? []).map((a) => [a.package, a])),
+    [assessments],
+  );
 
   const urgent = [...impact.values()].filter((a) => a.urgency === "high").length;
 

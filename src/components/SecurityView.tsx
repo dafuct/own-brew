@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, asBrewError } from "../api/client";
 import type { BrewError, SecurityReport, Severity } from "../api/types";
 import { ErrorBanner } from "./ErrorBanner";
@@ -11,8 +11,15 @@ const TONE: Record<Severity, string> = {
   UNKNOWN: "var(--text-faint)",
 };
 
-export function SecurityView({ refreshToken }: { refreshToken: number }) {
-  const [report, setReport] = useState<SecurityReport | null>(null);
+/** Presentational: the scan itself is owned by App so it survives tab
+ *  switches instead of re-running `brew vulns` on every remount. */
+export function SecurityView({
+  report,
+  onRescan,
+}: {
+  report: SecurityReport | null;
+  onRescan: () => void;
+}) {
   const [error, setError] = useState<BrewError | null>(null);
   const [scanning, setScanning] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -22,12 +29,10 @@ export function SecurityView({ refreshToken }: { refreshToken: number }) {
     setError(null);
     api
       .securityScan()
-      .then(setReport)
+      .then(() => onRescan())
       .catch((e) => setError(asBrewError(e)))
       .finally(() => setScanning(false));
   };
-
-  useEffect(scan, [refreshToken]);
 
   return (
     <>

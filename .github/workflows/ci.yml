@@ -39,6 +39,18 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: No unreplaced placeholders
+        # A v0.1.0 shipped pointing its updater at github.com/OWNER/own-brew,
+        # so it could never find an update. Cheap to check, expensive to miss.
+        run: |
+          # This workflow names the placeholder in its own comment, so it is
+          # not among the files checked.
+          if grep -rn 'OWNER/own-brew' \
+               src-tauri/tauri.conf.json README.md .github/workflows/release.yml; then
+            echo "::error::placeholder OWNER found — replace with the real repository"
+            exit 1
+          fi
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 

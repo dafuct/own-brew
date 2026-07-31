@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, asBrewError } from "./api/client";
 import type {
+  Assessment,
   BrewError,
   CatalogStats,
   Environment,
+  Footprint,
   InstalledView,
   OpRequest,
   Outdated,
+  SecurityReport,
   Service,
 } from "./api/types";
 import { CatalogView, type Selection } from "./components/CatalogView";
@@ -30,7 +33,15 @@ export default function App() {
   const [installed, setInstalled] = useState<InstalledView | null>(null);
   const [outdated, setOutdated] = useState<Outdated | null>(null);
   const [services, setServices] = useState<Service[] | null>(null);
-  const [vulnerable, setVulnerable] = useState<number | undefined>(undefined);
+  // Security, disk and impact each cost seconds of real work (brew vulns, a
+  // 2 GB directory walk, a vulnerability scan plus two brew calls). Holding
+  // them here means switching tabs is instant instead of redoing that work on
+  // every remount. `stale` marks them for refetch after an operation without
+  // paying the cost until the user actually looks.
+  const [security, setSecurity] = useState<SecurityReport | null>(null);
+  const [footprint, setFootprint] = useState<Footprint | null>(null);
+  const [impact, setImpact] = useState<Assessment[] | null>(null);
+  const [stale, setStale] = useState({ security: true, disk: true, impact: true });
   const [selection, setSelection] = useState<Selection | null>(null);
   const [error, setError] = useState<BrewError | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -72,6 +83,8 @@ export default function App() {
   const onSettled = useCallback(() => {
     void refreshLocalState();
     void api.services().then(setServices).catch(() => undefined);
+    // Mark, don't fetch: the user may never open these tabs.
+    setStale({ security: true, disk: true, impact: true });
   }, [refreshLocalState]);
 
   const { operation, run, recover, cancel, dismiss } = useOperations(onSettled);
@@ -85,33 +98,32 @@ export default function App() {
         void refreshLocalState();
         // The catalog is still warming up in the background at this point, so
         // a failure here just means "not ready yet".
+        // Resolves once the catalog has finished loading; no polling needed.
         api.catalogStats().then(setStats).catch(() => undefined);
-        // Runs a few seconds; the rail badge appears when it lands.
-        api
-          .securityScan()
-          .then((report) => setVulnerable(report.critical + report.high))
-          .catch(() => undefined);
       })
       .catch((e) => setError(asBrewError(e)));
   }, [refreshLocalState]);
 
-  // The catalog preloads on startup; poll briefly until its stats appear.
   useEffect(() => {
-    if (stats || !environment?.brewInstalled) return;
-    const timer = setInterval(() => {
-      api
-        .catalogStats()
-        .then((s) => setStats(s))
-        .catch(() => undefined);
-    }, 900);
-    return () => clearInterval(timer);
-  }, [stats, environment]);
+    if (!environment?.brewInstalled) return;
 
-  useEffect(() => {
-    if (view === "services" && services === null && environment?.brewInstalled) {
+    if (view === "services" && services === null) {
       api.services().then(setServices).catch((e) => setError(asBrewError(e)));
     }
-  }, [view, services, environment]);
+    if (view === "security" && stale.security) {
+      setStale((s) => ({ ...s, security: false }));
+      api.securityScan().then(setSecurity).catch(() => undefined);
+    }
+    if (view === "disk" && stale.disk) {
+      setStale((s) => ({ ...s, disk: false }));
+      setFootprint(null);
+      api.diskFootprint().then(setFootprint).catch(() => undefined);
+    }
+    if (view === "updates" && stale.impact) {
+      setStale((s) => ({ ...s, impact: false }));
+      api.impactAll().then(setImpact).catch(() => undefined);
+    }
+  }, [view, services, environment, stale]);
 
   /** `kind:id` -> installed version, so catalog rows can show install state. */
   const installedIndex = useMemo(() => {
@@ -151,7 +163,7 @@ export default function App() {
           counts={{
             installed: installed?.summary.requested,
             updates: updateCount,
-            security: vulnerable,
+            security: security ? security.critical + security.high : undefined,
             services: services?.filter((s) => s.status === "started").length,
           }}
           stats={stats}
@@ -179,13 +191,22 @@ export default function App() {
             />
           )}
           {view === "updates" && (
-            <UpdatesList data={outdated} onSelect={setSelection} onRun={onRun} busy={busy} />
+            <UpdatesList
+              data={outdated}
+              assessments={impact}
+              onSelect={setSelection}
+              onRun={onRun}
+              busy={busy}
+            />
           )}
-          {view === "security" && <SecurityView refreshToken={refreshToken} />}
+          {view === "security" && (
+            <SecurityView
+              report={security}
+              onRescan={() => setStale((st) => ({ ...st, security: true }))}
+            />
+          )}
           {view === "history" && <HistoryList refreshToken={refreshToken} />}
-          {view === "disk" && (
-            <DiskView refreshToken={refreshToken} onRun={onRun} busy={busy} />
-          )}
+          {view === "disk" && <DiskView footprint={footprint} onRun={onRun} busy={busy} />}
           {view === "services" && <ServicesList services={services} />}
         </main>
       </div>

@@ -60,7 +60,12 @@ jobs:
           # One download that runs on both Apple Silicon and Intel. It costs
           # every user the other architecture's bytes, which is the price of
           # never making anyone choose the wrong file.
-          args: --target universal-apple-darwin
+          # Updater artifacts are enabled here rather than in the committed
+          # config: switching them on there would make every local build
+          # demand the signing key, which only this pipeline has.
+          args: >-
+            --target universal-apple-darwin
+            --config {"bundle":{"createUpdaterArtifacts":true}}
           tagName: ${{ github.ref_name }}
           releaseName: own-brew ${{ github.ref_name }}
           releaseBody: |
@@ -89,7 +94,12 @@ jobs:
           # One download that runs on both Apple Silicon and Intel. It costs
           # every user the other architecture's bytes, which is the price of
           # never making anyone choose the wrong file.
-          args: --target universal-apple-darwin
+          # Updater artifacts are enabled here rather than in the committed
+          # config: switching them on there would make every local build
+          # demand the signing key, which only this pipeline has.
+          args: >-
+            --target universal-apple-darwin
+            --config {"bundle":{"createUpdaterArtifacts":true}}
           tagName: ${{ github.ref_name }}
           releaseName: own-brew ${{ github.ref_name }}
           releaseBody: |

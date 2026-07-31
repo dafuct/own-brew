@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { api, asBrewError } from "../api/client";
+import { useState } from "react";
 import type { BrewError, Footprint, OpRequest } from "../api/types";
 import { ErrorBanner } from "./ErrorBanner";
 
@@ -15,29 +14,19 @@ export function bytes(value: number): string {
   return `${scaled.toFixed(scaled < 10 ? 1 : 0)} ${units[unit]}`;
 }
 
+/** Presentational: measuring the Cellar walks gigabytes, so App owns the
+ *  result and this only renders it. */
 export function DiskView({
-  refreshToken,
+  footprint,
   onRun,
   busy,
 }: {
-  refreshToken: number;
+  footprint: Footprint | null;
   onRun: (request: OpRequest) => void;
   busy: boolean;
 }) {
-  const [footprint, setFootprint] = useState<Footprint | null>(null);
-  const [error, setError] = useState<BrewError | null>(null);
+  const [error] = useState<BrewError | null>(null);
   const [confirming, setConfirming] = useState(false);
-
-  useEffect(() => {
-    setFootprint(null);
-    api
-      .diskFootprint()
-      .then((f) => {
-        setFootprint(f);
-        setError(null);
-      })
-      .catch((e) => setError(asBrewError(e)));
-  }, [refreshToken]);
 
   const parts = footprint
     ? [
