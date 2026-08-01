@@ -260,7 +260,11 @@ mod tests {
 
         assert_eq!(*cache.get_or_load(load).await.unwrap(), 7);
         assert_eq!(*cache.get_or_load(load).await.unwrap(), 7);
-        assert_eq!(calls.load(Ordering::SeqCst), 1, "the second call was not served from cache");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            1,
+            "the second call was not served from cache"
+        );
     }
 
     #[tokio::test]
@@ -283,16 +287,18 @@ mod tests {
         );
 
         assert!(a.is_ok() && b.is_ok() && c.is_ok());
-        assert_eq!(calls.load(Ordering::SeqCst), 1, "the load was not single-flighted");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            1,
+            "the load was not single-flighted"
+        );
     }
 
     #[tokio::test]
     async fn invalidating_forces_the_next_read_to_recompute() {
         let cache: Cache<u32> = Cache::default();
         let calls = AtomicUsize::new(0);
-        let load = || async {
-            Ok(calls.fetch_add(1, Ordering::SeqCst) as u32)
-        };
+        let load = || async { Ok(calls.fetch_add(1, Ordering::SeqCst) as u32) };
 
         assert_eq!(*cache.get_or_load(load).await.unwrap(), 0);
         cache.invalidate().await;
@@ -311,8 +317,16 @@ mod tests {
         let load = || async { Ok(calls.fetch_add(1, Ordering::SeqCst) as u32) };
 
         assert_eq!(*cache.get_or_load(load).await.unwrap(), 0);
-        assert_eq!(*cache.refresh(load).await.unwrap(), 1, "Rescan returned the cached report");
-        assert_eq!(*cache.get_or_load(load).await.unwrap(), 1, "the refreshed value was not stored");
+        assert_eq!(
+            *cache.refresh(load).await.unwrap(),
+            1,
+            "Rescan returned the cached report"
+        );
+        assert_eq!(
+            *cache.get_or_load(load).await.unwrap(),
+            1,
+            "the refreshed value was not stored"
+        );
     }
 
     #[tokio::test]
