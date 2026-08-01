@@ -28,6 +28,8 @@ export function useSearch(text: string, kind: Kind | null, sort: Sort): SearchSt
   const [, setVersion] = useState(0);
 
   const pages = useRef(new Map<number, Entry[]>());
+  /** Mirrors `total` for callbacks that must not re-create on every change. */
+  const totalRef = useRef(0);
   const inFlight = useRef(new Set<number>());
   /** Guards against a slow response for a stale query overwriting a fresh one. */
   const generation = useRef(0);
@@ -50,6 +52,7 @@ export function useSearch(text: string, kind: Kind | null, sort: Sort): SearchSt
         });
         if (mine !== generation.current) return; // query changed underneath us
         pages.current.set(page, result.items);
+        totalRef.current = result.total;
         setTotal(result.total);
         setVersion((v) => v + 1);
       } catch (e) {
@@ -68,6 +71,7 @@ export function useSearch(text: string, kind: Kind | null, sort: Sort): SearchSt
     inFlight.current.clear();
     setError(null);
     setLoading(true);
+    totalRef.current = 0;
     setTotal(0);
     setVersion((v) => v + 1);
     void loadPage(0);
@@ -84,7 +88,13 @@ export function useSearch(text: string, kind: Kind | null, sort: Sort): SearchSt
     (start: number, end: number) => {
       const first = Math.floor(Math.max(0, start) / PAGE);
       const last = Math.floor(Math.max(0, end) / PAGE);
-      for (let page = first; page <= last; page += 1) void loadPage(page);
+      // One page either side as well: a page costs ~2ms of backend and arrives
+      // long before a scroll reaches it, whereas landing on an unloaded page
+      // shows the user a screen of grey placeholders.
+      const lastPage = totalRef.current > 0 ? Math.floor((totalRef.current - 1) / PAGE) : last;
+      for (let page = Math.max(0, first - 1); page <= Math.min(last + 1, lastPage); page += 1) {
+        void loadPage(page);
+      }
     },
     [loadPage],
   );

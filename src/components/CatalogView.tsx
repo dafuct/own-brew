@@ -7,6 +7,13 @@ import { ErrorBanner } from "./ErrorBanner";
 
 const ROW_HEIGHT = 46;
 
+/** Rows kept rendered beyond the viewport, each side.
+ *
+ *  Sized for a flick, not a nudge: at 46px a row this is ~1,470px of cover
+ *  above and below, so the list stays populated through the frames between
+ *  the compositor moving the viewport and React committing new rows. */
+const OVERSCAN = 32;
+
 export interface Selection {
   kind: Kind;
   id: string;
@@ -39,7 +46,7 @@ export function CatalogView({
     count: search.total,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 14,
+    overscan: OVERSCAN,
   });
 
   const virtualRows = virtualizer.getVirtualItems();

@@ -226,9 +226,22 @@ async fn impact_assessment_over_real_pending_updates() {
     let Some(brew) = brew() else { return };
     let http = reqwest::Client::new();
 
-    let Ok(assessments) = own_brew_lib::impact::assess_outdated(&brew, &http).await else {
-        return; // offline: analytics unavailable
+    let (outdated, info, vulns) = tokio::join!(
+        own_brew_lib::state::outdated(&brew),
+        brew.json::<own_brew_lib::model::detail::Info>(&["info", "--json=v2", "--installed"]),
+        own_brew_lib::security::scan(&brew),
+    );
+    let (Ok(outdated), Ok(info)) = (outdated, info) else {
+        return; // brew unavailable
     };
+    let assessments = own_brew_lib::impact::assess_all(
+        &outdated,
+        &info,
+        &vulns.unwrap_or_default(),
+        &brew,
+        &http,
+    )
+    .await;
 
     for assessment in &assessments {
         assert!(!assessment.package.is_empty());

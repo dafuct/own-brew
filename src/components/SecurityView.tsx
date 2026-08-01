@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, asBrewError } from "../api/client";
+import { asBrewError } from "../api/client";
 import type { BrewError, SecurityReport, Severity } from "../api/types";
 import { ErrorBanner } from "./ErrorBanner";
 
@@ -18,7 +18,8 @@ export function SecurityView({
   onRescan,
 }: {
   report: SecurityReport | null;
-  onRescan: () => void;
+  /** Runs a forced rescan and resolves once the new report is in. */
+  onRescan: () => Promise<unknown>;
 }) {
   const [error, setError] = useState<BrewError | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -27,9 +28,7 @@ export function SecurityView({
   const scan = () => {
     setScanning(true);
     setError(null);
-    api
-      .securityScan()
-      .then(() => onRescan())
+    onRescan()
       .catch((e) => setError(asBrewError(e)))
       .finally(() => setScanning(false));
   };

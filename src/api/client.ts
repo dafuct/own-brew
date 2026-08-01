@@ -79,7 +79,8 @@ export const api = {
   setPolicy: (policy: Policy) => invoke<void>("policy_set", { policy }),
   decisions: () => invoke<Decision[]>("policy_decisions"),
 
-  securityScan: () => invoke<SecurityReport>("security_scan"),
+  /** `force` bypasses the shared cache — what the Rescan button needs. */
+  securityScan: (force = false) => invoke<SecurityReport>("security_scan", { force }),
   impactAll: () => invoke<Assessment[]>("impact_all"),
   diskFootprint: () => invoke<Footprint>("disk_footprint"),
 };

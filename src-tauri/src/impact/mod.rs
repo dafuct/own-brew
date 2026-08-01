@@ -299,17 +299,14 @@ pub async fn build_errors(http: &reqwest::Client) -> HashMap<String, u64> {
 /// the installed graph, the vulnerability scan and the build-error feed run
 /// concurrently, and the reverse-dependency map is inverted rather than asked
 /// per package.
-pub async fn assess_outdated(brew: &Brew, http: &reqwest::Client) -> Result<Vec<Assessment>> {
-    let (outdated, info, vulns) = tokio::join!(
-        crate::state::outdated(brew),
-        brew.json::<crate::model::detail::Info>(&["info", "--json=v2", "--installed"]),
-        crate::security::scan(brew),
-    );
-    let outdated = outdated?;
-    let info = info?;
-    let vulns = vulns.unwrap_or_default();
-
-    let radius = blast_radius(&info);
+pub async fn assess_all(
+    outdated: &crate::model::Outdated,
+    info: &crate::model::detail::Info,
+    vulns: &crate::security::Report,
+    brew: &Brew,
+    http: &reqwest::Client,
+) -> Vec<Assessment> {
+    let radius = blast_radius(info);
     let errors = build_errors(http).await;
     let on_disk = crate::rollback::cellar::inventory(brew.prefix());
 
@@ -345,7 +342,7 @@ pub async fn assess_outdated(brew: &Brew, http: &reqwest::Client) -> Result<Vec<
             .then_with(|| b.risk.cmp(&a.risk))
             .then_with(|| a.package.cmp(&b.package))
     });
-    Ok(assessments)
+    assessments
 }
 
 #[cfg(test)]

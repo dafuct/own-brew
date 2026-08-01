@@ -79,14 +79,15 @@ pub async fn package_detail(app: State<'_, App>, kind: Kind, id: String) -> Resu
 
 #[tauri::command]
 pub async fn installed(app: State<'_, App>) -> Result<InstalledView> {
-    let packages = state::installed(app.brew()?).await?;
+    let info = app.info().await?;
+    let packages = state::from_info(&info, app.brew()?);
     let summary = state::summarize(&packages);
     Ok(InstalledView { packages, summary })
 }
 
 #[tauri::command]
 pub async fn outdated(app: State<'_, App>) -> Result<Outdated> {
-    state::outdated(app.brew()?).await
+    Ok((*app.outdated().await?).clone())
 }
 
 #[tauri::command]
@@ -123,6 +124,12 @@ pub async fn op_run(app: State<'_, App>, request: Request, channel: Channel<Even
     });
 
     let outcome = app.runner.run(brew, request, channel).await;
+
+    // An operation is the only thing that can change what is installed from
+    // under us, so this is where the shared local-state caches expire. Done
+    // unconditionally: a failed or cancelled `brew upgrade` can still have
+    // moved some of its targets.
+    app.invalidate_local().await;
 
     let changes: Vec<Change> = match (&before, changes_versions) {
         (Some(before), true) => match state::installed(brew).await {
@@ -206,6 +213,9 @@ pub async fn rollback_restore(app: State<'_, App>, id: String, version: String) 
 
     let outcome = rollback::restore_local_keg(brew, &id, &version).await;
 
+    // A rollback swaps which version is live, so the shared caches expire.
+    app.invalidate_local().await;
+
     let changes = match (&before, state::installed(brew).await) {
         (Some(before), Ok(after)) => diff::diff(before, &after),
         _ => Vec::new(),
@@ -244,6 +254,9 @@ pub async fn rollback_recover(
     });
 
     let outcome = recover(&app, brew, &id, &version, channel).await;
+
+    // A rollback swaps which version is live, so the shared caches expire.
+    app.invalidate_local().await;
 
     let changes = match (&before, state::installed(brew).await) {
         (Some(before), Ok(after)) => diff::diff(before, &after),
@@ -293,7 +306,9 @@ async fn recover(
 /// Put the newest installed version back in charge after a recovery.
 #[tauri::command]
 pub async fn rollback_return_to_latest(app: State<'_, App>, id: String) -> Result<()> {
-    rollback::return_to_latest(app.brew()?, &id).await
+    let outcome = rollback::return_to_latest(app.brew()?, &id).await;
+    app.invalidate_local().await;
+    outcome
 }
 
 #[tauri::command]
@@ -339,14 +354,28 @@ pub async fn policy_decisions(app: State<'_, App>) -> Result<Vec<Decision>> {
 
 /// Known vulnerabilities across everything installed.
 #[tauri::command]
-pub async fn security_scan(app: State<'_, App>) -> Result<security::Report> {
-    security::scan(app.brew()?).await
+pub async fn security_scan(app: State<'_, App>, force: Option<bool>) -> Result<security::Report> {
+    let report = if force.unwrap_or(false) {
+        app.rescan_vulns().await?
+    } else {
+        app.vulns().await?
+    };
+    Ok((*report).clone())
 }
 
 /// Risk and urgency for everything currently outdated.
 #[tauri::command]
 pub async fn impact_all(app: State<'_, App>) -> Result<Vec<impact::Assessment>> {
-    impact::assess_outdated(app.brew()?, app.http()).await
+    // All three inputs are shared with the Installed, Updates and Security
+    // views, so on a warm cache this is pure computation.
+    let (outdated, info, vulns) = tokio::join!(app.outdated(), app.info(), app.vulns());
+    let outdated = outdated?;
+    let info = info?;
+    // A failed vulnerability scan degrades to "no known vulnerabilities"
+    // rather than failing the whole assessment.
+    let vulns = vulns.unwrap_or_default();
+
+    Ok(impact::assess_all(&outdated, &info, &vulns, app.brew()?, app.http()).await)
 }
 
 /// What Homebrew costs in disk, and what reclaiming would give back.

@@ -26,6 +26,8 @@ import { useOperations } from "./hooks/useOperations";
 
 type Theme = "dark" | "light";
 
+type Stale = { security: boolean; disk: boolean; impact: boolean };
+
 export default function App() {
   const [view, setView] = useState<View>("discover");
   const [environment, setEnvironment] = useState<Environment | null>(null);
@@ -41,7 +43,9 @@ export default function App() {
   const [security, setSecurity] = useState<SecurityReport | null>(null);
   const [footprint, setFootprint] = useState<Footprint | null>(null);
   const [impact, setImpact] = useState<Assessment[] | null>(null);
-  const [stale, setStale] = useState({ security: true, disk: true, impact: true });
+  const [stale, setStale] = useState<Stale>({ security: true, disk: true, impact: true });
+  /** Bumped when an operation invalidates the derived views, to re-warm them. */
+  const [warmToken, setWarmToken] = useState(0);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [error, setError] = useState<BrewError | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -83,8 +87,11 @@ export default function App() {
   const onSettled = useCallback(() => {
     void refreshLocalState();
     void api.services().then(setServices).catch(() => undefined);
-    // Mark, don't fetch: the user may never open these tabs.
+    // Mark them stale, then let the background warm-up refill them: the
+    // Rust side single-flights these, so a tab the user opens meanwhile
+    // joins the same scan rather than starting a second one.
     setStale({ security: true, disk: true, impact: true });
+    setWarmToken((token) => token + 1);
   }, [refreshLocalState]);
 
   const { operation, run, recover, cancel, dismiss } = useOperations(onSettled);
@@ -124,6 +131,52 @@ export default function App() {
       api.impactAll().then(setImpact).catch(() => undefined);
     }
   }, [view, services, environment, stale]);
+
+  /** Fill the expensive views before the user asks for them.
+   *
+   *  Security, Disk and Updates each need seconds of `brew` on a cold cache —
+   *  measured here at 4.7s for `brew vulns`, 5.5s for `brew outdated` and
+   *  ~2.5s for the disk walk. Fetching them only on first click meant every
+   *  one of those tabs opened onto placeholder bars and stayed there. They are
+   *  warmed in the background instead, in sequence so they do not compete, and
+   *  ordered so the vulnerability scan is already cached by the time the
+   *  impact assessment needs it. The delay lets the first paint and the
+   *  catalog load finish first.
+   *
+   *  Whichever tab the user is already looking at is handled by the effect
+   *  above; this only removes the wait for the ones they have not opened. */
+  useEffect(() => {
+    if (!environment?.brewInstalled) return;
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      const warm = async <T,>(
+        fetch: () => Promise<T>,
+        apply: (value: T) => void,
+        mark: (s: Stale) => Stale,
+      ) => {
+        if (cancelled) return;
+        try {
+          const value = await fetch();
+          if (cancelled) return;
+          apply(value);
+          setStale(mark);
+        } catch {
+          // A warm-up failure is not worth reporting: the tab will retry and
+          // can surface the error itself when the user actually goes there.
+        }
+      };
+
+      await warm(api.securityScan, setSecurity, (s) => ({ ...s, security: false }));
+      await warm(api.impactAll, setImpact, (s) => ({ ...s, impact: false }));
+      await warm(api.diskFootprint, setFootprint, (s) => ({ ...s, disk: false }));
+    }, 1_500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [environment, warmToken]);
 
   /** `kind:id` -> installed version, so catalog rows can show install state. */
   const installedIndex = useMemo(() => {
@@ -178,9 +231,15 @@ export default function App() {
               onRetry={() => void refreshLocalState()}
             />}
 
-          {view === "discover" && (
+          {/* Discover stays mounted. Unmounting it threw away the scroll
+              position, the typed query and every page already fetched, so
+              coming back to the tab restarted the search at the top. It is
+              hidden rather than removed because a display:none element loses
+              its box, and with it the scroll offset we are preserving. */}
+          <div className={`pane${view === "discover" ? "" : " pane--hidden"}`}>
             <CatalogView selected={selection} onSelect={setSelection} installed={installedIndex} />
-          )}
+          </div>
+
           {view === "installed" && (
             <InstalledList
               data={installed}
@@ -202,7 +261,8 @@ export default function App() {
           {view === "security" && (
             <SecurityView
               report={security}
-              onRescan={() => setStale((st) => ({ ...st, security: true }))}
+              // Forced: a cached answer is exactly what Rescan must not return.
+              onRescan={() => api.securityScan(true).then(setSecurity)}
             />
           )}
           {view === "history" && <HistoryList refreshToken={refreshToken} />}

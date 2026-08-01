@@ -1,6 +1,6 @@
 [package]
 name = "own-brew"
-version = "0.1.1"
+version = "0.1.2"
 description = "The Homebrew GUI that can undo an upgrade"
 authors = ["own-brew contributors"]
 license = "MIT"

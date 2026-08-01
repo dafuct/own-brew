@@ -177,11 +177,31 @@ input {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Anchors the hidden Discover pane. */
+  position: relative;
   /* Grid and flex items default to min-height:auto, which refuses to shrink
      below the content's intrinsic height. The virtualised list's spacer is
      ~722,000px tall, so without this the column grows to fit it. */
   min-height: 0;
   height: 100%;
+}
+
+/* A view that stays mounted while another one is showing.
+   Kept in the layout — sized, laid out, just not painted or hit-tested — so
+   its scroll container keeps its height and therefore its scroll offset.
+   display:none would reset both. */
+.pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane--hidden {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .header {

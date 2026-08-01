@@ -88,7 +88,14 @@ pub struct Summary {
 
 pub async fn installed(brew: &Brew) -> Result<Vec<InstalledPackage>> {
     let info: Info = brew.json(&["info", "--json=v2", "--installed"]).await?;
+    Ok(from_info(&info, brew))
+}
 
+/// Build the installed list from an already-fetched `brew info`.
+///
+/// Separate from [`installed`] so callers that already hold the (expensive)
+/// info payload do not shell out for a second copy of it.
+pub fn from_info(info: &Info, brew: &Brew) -> Vec<InstalledPackage> {
     let mut packages: Vec<InstalledPackage> = info
         .formulae
         .iter()
@@ -115,7 +122,7 @@ pub async fn installed(brew: &Brew) -> Result<Vec<InstalledPackage>> {
     }
 
     packages.sort_by_key(|p| p.name.to_lowercase());
-    Ok(packages)
+    packages
 }
 
 pub fn summarize(packages: &[InstalledPackage]) -> Summary {
